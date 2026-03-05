@@ -1,8 +1,9 @@
+import { SmoothCursor } from "@/components/ui/smooth-cursor";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter as BrowserRouter, Routes, Route } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { DocumentProvider } from "@/context/DocumentContext";
 import { ThemeProvider } from "@/hooks/useTheme";
@@ -18,21 +19,22 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <ThemeProvider>
-      <DocumentProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AnimatePresence mode="wait">
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/upload" element={<Upload />} />
-              <Route path="/chat/:documentId" element={<Chat />} />
-              <Route path="/quiz/:documentId" element={<Quiz />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AnimatePresence>
-        </BrowserRouter>
-      </DocumentProvider>
+        <DocumentProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AnimatePresence mode="wait">
+              <SmoothCursor />
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/upload" element={<Upload />} />
+                <Route path="/chat/:documentId" element={<Chat />} />
+                <Route path="/quiz/:documentId" element={<Quiz />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AnimatePresence>
+          </BrowserRouter>
+        </DocumentProvider>
       </ThemeProvider>
     </TooltipProvider>
   </QueryClientProvider>
