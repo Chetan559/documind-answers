@@ -5,7 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: "/documind-answers/",
+  // base: "/documind-answers/",
   server: {
     host: "::",
     hmr: {
