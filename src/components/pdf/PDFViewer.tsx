@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -56,6 +56,7 @@ const PDFViewer = ({ pdfId, fileName = 'Document.pdf', onClose, citations = [], 
   const [pageSize, setPageSize] = useState({ width: 0, height: 0 });
   const [pdfNativeSize, setPdfNativeSize] = useState({ width: 612, height: 792 });
   const [loading, setLoading] = useState(true);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentPage = activePage || page;
 
@@ -65,8 +66,16 @@ const PDFViewer = ({ pdfId, fileName = 'Document.pdf', onClose, citations = [], 
     onPageChange?.(clamped);
   }, [numPages, onPageChange]);
 
-  const fileUrl = getDocumentFileUrl(pdfId);
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    // Debounce to avoid rapid page changes
+    if (scrollTimeoutRef.current) return;
+    if (e.deltaY > 0) goToPage(currentPage + 1);
+    else if (e.deltaY < 0) goToPage(currentPage - 1);
+    scrollTimeoutRef.current = setTimeout(() => { scrollTimeoutRef.current = null; }, 300);
+  }, [goToPage, currentPage]);
 
+  const fileUrl = getDocumentFileUrl(pdfId);
   const pageCitations = citations.filter(c => c.page_number === currentPage);
 
   return (
@@ -101,8 +110,8 @@ const PDFViewer = ({ pdfId, fileName = 'Document.pdf', onClose, citations = [], 
         </div>
       </div>
 
-      {/* PDF Content */}
-      <div className="flex-1 overflow-auto p-4 flex justify-center">
+      {/* PDF Content — scroll to change pages */}
+      <div className="flex-1 overflow-hidden p-4 flex justify-center" onWheel={handleWheel}>
         <div style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}>
           <Document
             file={fileUrl}
@@ -122,7 +131,6 @@ const PDFViewer = ({ pdfId, fileName = 'Document.pdf', onClose, citations = [], 
                   setPdfNativeSize({ width: pageInfo.originalWidth, height: pageInfo.originalHeight });
                 }}
                 onRenderSuccess={() => {
-                  // Get rendered size from the canvas
                   const canvas = document.querySelector('.react-pdf__Page__canvas') as HTMLCanvasElement;
                   if (canvas) {
                     setPageSize({ width: canvas.clientWidth, height: canvas.clientHeight });

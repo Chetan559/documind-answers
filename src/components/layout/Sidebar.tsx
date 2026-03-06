@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Upload, MessageSquare, Search, FileText, Folder, ChevronRight, MoreVertical, Share2, Menu, X, BookOpen } from 'lucide-react';
+import { Upload, MessageSquare, Search, FileText, Folder, ChevronRight, MoreVertical, Share2, Menu, X, BookOpen, Trash2 } from 'lucide-react';
 import { useDocuments } from '@/context/DocumentContext';
+import { deleteDocument } from '@/api/documents';
+import { useToast } from '@/hooks/use-toast';
 
 interface SidebarProps {
   onUploadClick?: () => void;
@@ -11,10 +13,35 @@ const Sidebar = ({ onUploadClick }: SidebarProps) => {
   const { state, dispatch } = useDocuments();
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
   const [foldersOpen, setFoldersOpen] = useState(true);
   const [docsOpen, setDocsOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpenId(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleDelete = async (docId: string, docName: string) => {
+    try {
+      await deleteDocument(docId);
+      dispatch({ type: 'REMOVE_DOCUMENT', payload: docId });
+      setMenuOpenId(null);
+      toast({ title: 'Deleted', description: `${docName} has been removed.` });
+      if (location.pathname.includes(docId)) navigate('/upload');
+    } catch {
+      toast({ title: 'Error', description: 'Failed to delete document.', variant: 'destructive' });
+    }
+  };
 
   const filteredDocs = state.documents.filter(d =>
     d.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -108,7 +135,34 @@ const Sidebar = ({ onUploadClick }: SidebarProps) => {
                     >
                       <BookOpen className="w-3 h-3" />
                     </span>
-                    <MoreVertical className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="relative" ref={menuOpenId === doc.id ? menuRef : undefined}>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMenuOpenId(menuOpenId === doc.id ? null : doc.id);
+                        }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setMenuOpenId(menuOpenId === doc.id ? null : doc.id); } }}
+                        className="p-0.5 opacity-0 group-hover:opacity-100 transition-opacity rounded hover:bg-primary/10 cursor-pointer"
+                        aria-label={`Options for ${doc.name}`}
+                      >
+                        <MoreVertical className="w-3 h-3" />
+                      </span>
+                      {menuOpenId === doc.id && (
+                        <div className="absolute right-0 top-5 z-50 min-w-[120px] bg-popover border border-border rounded-md shadow-md py-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(doc.id, doc.name);
+                            }}
+                            className="flex items-center gap-2 w-full px-3 py-1.5 text-xs font-body text-destructive hover:bg-destructive/10 transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3" /> Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </span>
                 </button>
               );
@@ -127,7 +181,6 @@ const Sidebar = ({ onUploadClick }: SidebarProps) => {
 
   return (
     <>
-      {/* Mobile toggle */}
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
         className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-surface rounded-md border border-sidebar-border"
@@ -136,12 +189,10 @@ const Sidebar = ({ onUploadClick }: SidebarProps) => {
         {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
       </button>
 
-      {/* Mobile overlay */}
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-background/80 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
       )}
 
-      {/* Sidebar */}
       <aside className={`fixed lg:relative z-40 w-[280px] h-screen shrink-0 transition-transform lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {content}
       </aside>
