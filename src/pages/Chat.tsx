@@ -179,7 +179,7 @@ const ChatPage = () => {
 
         {/* PDF Panel */}
         {pdfOpen && documentId && (
-          <div className="hidden lg:block w-[340px] shrink-0">
+          <div className="hidden lg:block w-[375px] shrink-0 overflow-hidden">
             <PDFViewer
               pdfId={documentId}
               fileName={doc?.name}
