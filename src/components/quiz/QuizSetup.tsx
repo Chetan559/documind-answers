@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, FileText, Play, Minus, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  FileText,
+  Play,
+  Minus,
+  Plus,
+  LayoutDashboard,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { GenerateConfig } from "@/api/quiz";
 
@@ -54,16 +61,23 @@ const QuizSetup = ({
       exit={{ opacity: 0, y: -20 }}
       className="min-h-screen flex flex-col items-center justify-center px-4 py-12"
     >
-      {/* Back button */}
-      <div className="w-full max-w-lg mb-6">
+      {/* Back buttons */}
+      <div className="w-full max-w-lg mb-6 flex items-center justify-between">
         <button
           onClick={() =>
             navigate(documentId ? `/chat/${documentId}` : "/upload")
           }
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors font-body"
-          aria-label="Back to Document"
+          aria-label="Back to Chat"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Document
+          <ArrowLeft className="w-4 h-4" /> Back to Chat
+        </button>
+        <button
+          onClick={() => navigate("/upload")}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors font-body"
+          aria-label="My Documents"
+        >
+          <LayoutDashboard className="w-4 h-4" /> My Documents
         </button>
       </div>
 

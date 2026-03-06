@@ -1,9 +1,23 @@
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Upload, MessageSquare, Search, FileText, Folder, ChevronRight, MoreVertical, Share2, Menu, X, BookOpen, Trash2 } from 'lucide-react';
-import { useDocuments } from '@/context/DocumentContext';
-import { deleteDocument } from '@/api/documents';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useRef, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  Upload,
+  MessageSquare,
+  Search,
+  FileText,
+  Folder,
+  ChevronRight,
+  MoreVertical,
+  Share2,
+  Menu,
+  X,
+  BookOpen,
+  Trash2,
+  LayoutDashboard,
+} from "lucide-react";
+import { useDocuments } from "@/context/DocumentContext";
+import { deleteDocument } from "@/api/documents";
+import { useToast } from "@/hooks/use-toast";
 
 interface SidebarProps {
   onUploadClick?: () => void;
@@ -16,7 +30,7 @@ const Sidebar = ({ onUploadClick }: SidebarProps) => {
   const { toast } = useToast();
   const [foldersOpen, setFoldersOpen] = useState(true);
   const [docsOpen, setDocsOpen] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -27,29 +41,43 @@ const Sidebar = ({ onUploadClick }: SidebarProps) => {
         setMenuOpenId(null);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   const handleDelete = async (docId: string, docName: string) => {
     try {
       await deleteDocument(docId);
-      dispatch({ type: 'REMOVE_DOCUMENT', payload: docId });
+      dispatch({ type: "REMOVE_DOCUMENT", payload: docId });
       setMenuOpenId(null);
-      toast({ title: 'Deleted', description: `${docName} has been removed.` });
-      if (location.pathname.includes(docId)) navigate('/upload');
+      toast({ title: "Deleted", description: `${docName} has been removed.` });
+      if (location.pathname.includes(docId)) navigate("/upload");
     } catch {
-      toast({ title: 'Error', description: 'Failed to delete document.', variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: "Failed to delete document.",
+        variant: "destructive",
+      });
     }
   };
 
-  const filteredDocs = state.documents.filter(d =>
-    d.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredDocs = state.documents.filter((d) =>
+    d.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const content = (
     <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
       <div className="p-4 space-y-3">
+        <button
+          onClick={() => {
+            navigate("/upload");
+            setMobileOpen(false);
+          }}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-border/40 rounded-lg text-sm text-foreground hover:bg-sidebar-accent transition-all active:scale-95 font-body"
+          aria-label="My Documents"
+        >
+          <LayoutDashboard className="w-4 h-4" /> My Documents
+        </button>
         <button
           onClick={onUploadClick}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-border/40 rounded-lg text-sm text-foreground hover:bg-sidebar-accent transition-all active:scale-95 font-body"
@@ -58,7 +86,7 @@ const Sidebar = ({ onUploadClick }: SidebarProps) => {
           <Upload className="w-4 h-4" /> Upload Documents
         </button>
         <button
-          onClick={() => navigate('/chat/all')}
+          onClick={() => navigate("/chat/all")}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm hover:bg-primary/90 transition-all active:scale-95 font-body"
           aria-label="Chat with All Documents"
         >
@@ -85,7 +113,9 @@ const Sidebar = ({ onUploadClick }: SidebarProps) => {
           onClick={() => setFoldersOpen(!foldersOpen)}
           className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors font-body"
         >
-          <ChevronRight className={`w-3 h-3 transition-transform ${foldersOpen ? 'rotate-90' : ''}`} />
+          <ChevronRight
+            className={`w-3 h-3 transition-transform ${foldersOpen ? "rotate-90" : ""}`}
+          />
           <Folder className="w-3.5 h-3.5" /> Folders
         </button>
 
@@ -93,30 +123,38 @@ const Sidebar = ({ onUploadClick }: SidebarProps) => {
           onClick={() => setDocsOpen(!docsOpen)}
           className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mt-1 font-body"
         >
-          <ChevronRight className={`w-3 h-3 transition-transform ${docsOpen ? 'rotate-90' : ''}`} />
+          <ChevronRight
+            className={`w-3 h-3 transition-transform ${docsOpen ? "rotate-90" : ""}`}
+          />
           <FileText className="w-3.5 h-3.5" /> Documents
         </button>
 
         {docsOpen && (
           <div className="ml-4 mt-1 space-y-0.5">
             {filteredDocs.map((doc) => {
-              const isActive = state.activeDocId === doc.id || location.pathname.includes(doc.id);
+              const isActive =
+                state.activeDocId === doc.id ||
+                location.pathname.includes(doc.id);
               return (
                 <button
                   key={doc.id}
                   onClick={() => {
-                    dispatch({ type: 'SET_ACTIVE_DOC', payload: doc.id });
+                    dispatch({ type: "SET_ACTIVE_DOC", payload: doc.id });
                     navigate(`/chat/${doc.id}`);
                     setMobileOpen(false);
                   }}
                   className={`flex items-center justify-between w-full px-2 py-1.5 rounded-md text-sm truncate transition-all font-body group ${
-                    isActive ? 'bg-sidebar-accent text-accent-foreground border-l-2 border-primary' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground hover:border-l-2 hover:border-primary/50'
+                    isActive
+                      ? "bg-sidebar-accent text-accent-foreground border-l-2 border-primary"
+                      : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground hover:border-l-2 hover:border-primary/50"
                   }`}
                   aria-label={`Open ${doc.name}`}
                 >
                   <span className="truncate text-xs flex items-center gap-1.5">
-                    {doc.status && doc.status !== 'ready' && (
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${doc.status === 'failed' ? 'bg-destructive' : 'bg-muted-foreground animate-pulse'}`} />
+                    {doc.status && doc.status !== "ready" && (
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${doc.status === "failed" ? "bg-destructive" : "bg-muted-foreground animate-pulse"}`}
+                      />
                     )}
                     {doc.name}
                   </span>
@@ -129,13 +167,22 @@ const Sidebar = ({ onUploadClick }: SidebarProps) => {
                         navigate(`/quiz/${doc.id}`);
                         setMobileOpen(false);
                       }}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); navigate(`/quiz/${doc.id}`); setMobileOpen(false); } }}
-                      className="p-0.5 opacity-0 group-hover:opacity-100 transition-opacity rounded hover:bg-primary/10"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.stopPropagation();
+                          navigate(`/quiz/${doc.id}`);
+                          setMobileOpen(false);
+                        }
+                      }}
+                      className="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity rounded hover:bg-primary/10"
                       aria-label={`Quiz ${doc.name}`}
                     >
-                      <BookOpen className="w-3 h-3" />
+                      <BookOpen className="w-3.5 h-3.5" />
                     </span>
-                    <div className="relative" ref={menuOpenId === doc.id ? menuRef : undefined}>
+                    <div
+                      className="relative"
+                      ref={menuOpenId === doc.id ? menuRef : undefined}
+                    >
                       <span
                         role="button"
                         tabIndex={0}
@@ -143,11 +190,18 @@ const Sidebar = ({ onUploadClick }: SidebarProps) => {
                           e.stopPropagation();
                           setMenuOpenId(menuOpenId === doc.id ? null : doc.id);
                         }}
-                        onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setMenuOpenId(menuOpenId === doc.id ? null : doc.id); } }}
-                        className="p-0.5 opacity-0 group-hover:opacity-100 transition-opacity rounded hover:bg-primary/10 cursor-pointer"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.stopPropagation();
+                            setMenuOpenId(
+                              menuOpenId === doc.id ? null : doc.id,
+                            );
+                          }
+                        }}
+                        className="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity rounded hover:bg-primary/10 cursor-pointer"
                         aria-label={`Options for ${doc.name}`}
                       >
-                        <MoreVertical className="w-3 h-3" />
+                        <MoreVertical className="w-3.5 h-3.5" />
                       </span>
                       {menuOpenId === doc.id && (
                         <div className="absolute right-0 top-5 z-50 min-w-[120px] bg-popover border border-border rounded-md shadow-md py-1">
@@ -172,7 +226,10 @@ const Sidebar = ({ onUploadClick }: SidebarProps) => {
       </div>
 
       <div className="p-4 border-t border-sidebar-border">
-        <button className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors font-body" aria-label="Share Your Chatbot">
+        <button
+          className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors font-body"
+          aria-label="Share Your Chatbot"
+        >
           <Share2 className="w-3.5 h-3.5" /> Share Your Chatbot
         </button>
       </div>
@@ -190,10 +247,15 @@ const Sidebar = ({ onUploadClick }: SidebarProps) => {
       </button>
 
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-background/80 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-background/80 backdrop-blur-sm"
+          onClick={() => setMobileOpen(false)}
+        />
       )}
 
-      <aside className={`fixed lg:relative z-40 w-[280px] h-screen shrink-0 transition-transform lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside
+        className={`fixed lg:relative z-40 w-[280px] h-screen shrink-0 transition-transform lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+      >
         {content}
       </aside>
     </>
