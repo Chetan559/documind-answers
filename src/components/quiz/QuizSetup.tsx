@@ -1,37 +1,50 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowLeft, FileText, Play, Minus, Plus, CheckSquare, Square } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import type { QuizConfig } from '@/api/quiz';
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { ArrowLeft, FileText, Play, Minus, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import type { GenerateConfig } from "@/api/quiz";
 
 interface Props {
   documentName?: string;
   documentId?: string;
-  config: QuizConfig;
-  onConfigChange: (config: Partial<QuizConfig>) => void;
+  config: GenerateConfig;
+  onConfigChange: (config: Partial<GenerateConfig>) => void;
   onStart: () => void;
   loading: boolean;
 }
 
+// Map API values to display labels
 const questionTypes = [
-  { id: 'multiple-choice', label: 'Multiple Choice', desc: '4 answer options' },
-  { id: 'true-false', label: 'True / False', desc: 'Binary choice' },
-  { id: 'short-answer', label: 'Short Answer', desc: 'Type your answer' },
+  { id: "mcq" as const, label: "Multiple Choice", desc: "4 answer options" },
+  { id: "true_false" as const, label: "True / False", desc: "Binary choice" },
+  {
+    id: "fill_in_the_blank" as const,
+    label: "Fill in the Blank",
+    desc: "Type your answer",
+  },
 ];
 
-const QuizSetup = ({ documentName, documentId, config, onConfigChange, onStart, loading }: Props) => {
+const QuizSetup = ({
+  documentName,
+  documentId,
+  config,
+  onConfigChange,
+  onStart,
+  loading,
+}: Props) => {
   const navigate = useNavigate();
-
-  const toggleType = (id: string) => {
-    const next = config.types.includes(id)
-      ? config.types.filter(t => t !== id)
-      : [...config.types, id];
-    if (next.length > 0) onConfigChange({ types: next });
-  };
+  const [topic, setTopic] = useState(config.topic || "");
 
   const adjustCount = (delta: number) => {
-    const n = Math.max(1, Math.min(50, config.numQuestions + delta));
-    onConfigChange({ numQuestions: n });
+    // API allows min 3, max 20
+    const n = Math.max(3, Math.min(20, config.count + delta));
+    onConfigChange({ count: n });
+  };
+
+  const handleStart = () => {
+    onConfigChange({ topic: topic.trim() || null });
+    // Small delay so state updates before onStart reads it
+    setTimeout(onStart, 0);
   };
 
   return (
@@ -44,7 +57,9 @@ const QuizSetup = ({ documentName, documentId, config, onConfigChange, onStart, 
       {/* Back button */}
       <div className="w-full max-w-lg mb-6">
         <button
-          onClick={() => navigate(documentId ? `/chat/${documentId}` : '/upload')}
+          onClick={() =>
+            navigate(documentId ? `/chat/${documentId}` : "/upload")
+          }
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors font-body"
           aria-label="Back to Document"
         >
@@ -56,7 +71,9 @@ const QuizSetup = ({ documentName, documentId, config, onConfigChange, onStart, 
       {documentName && (
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface border border-border/30 mb-8">
           <FileText className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground font-body truncate max-w-[200px]">{documentName}</span>
+          <span className="text-sm text-muted-foreground font-body truncate max-w-[200px]">
+            {documentName}
+          </span>
         </div>
       )}
 
@@ -68,17 +85,23 @@ const QuizSetup = ({ documentName, documentId, config, onConfigChange, onStart, 
         className="w-full max-w-lg bg-surface border border-border/20 rounded-2xl p-8 space-y-8"
       >
         <div className="text-center">
-          <h2 className="font-display text-3xl text-foreground mb-1">Quiz Mode</h2>
-          <p className="text-sm text-muted-foreground font-body">Test your knowledge</p>
+          <h2 className="font-display text-3xl text-foreground mb-1">
+            Quiz Mode
+          </h2>
+          <p className="text-sm text-muted-foreground font-body">
+            Test your knowledge
+          </p>
         </div>
 
-        {/* Question count stepper */}
+        {/* Question count stepper — clamped 3–20 */}
         <div>
-          <label className="text-xs text-muted-foreground font-body block mb-3 uppercase tracking-wider">Questions</label>
+          <label className="text-xs text-muted-foreground font-body block mb-3 uppercase tracking-wider">
+            Questions
+          </label>
           <div className="flex items-center justify-center gap-4">
             <button
               onClick={() => adjustCount(-1)}
-              disabled={config.numQuestions <= 1}
+              disabled={config.count <= 3}
               className="w-10 h-10 rounded-xl border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground/50 transition-all disabled:opacity-30 active:scale-95"
               aria-label="Decrease questions"
             >
@@ -86,16 +109,20 @@ const QuizSetup = ({ documentName, documentId, config, onConfigChange, onStart, 
             </button>
             <input
               type="number"
-              min={1}
-              max={50}
-              value={config.numQuestions}
-              onChange={e => onConfigChange({ numQuestions: Math.max(1, Math.min(50, Number(e.target.value) || 1)) })}
+              min={3}
+              max={20}
+              value={config.count}
+              onChange={(e) =>
+                onConfigChange({
+                  count: Math.max(3, Math.min(20, Number(e.target.value) || 3)),
+                })
+              }
               className="w-20 text-center bg-transparent border border-border/30 rounded-xl py-2 text-2xl font-display text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               aria-label="Number of questions"
             />
             <button
               onClick={() => adjustCount(1)}
-              disabled={config.numQuestions >= 50}
+              disabled={config.count >= 20}
               className="w-10 h-10 rounded-xl border border-border/30 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground/50 transition-all disabled:opacity-30 active:scale-95"
               aria-label="Increase questions"
             >
@@ -106,16 +133,18 @@ const QuizSetup = ({ documentName, documentId, config, onConfigChange, onStart, 
 
         {/* Difficulty */}
         <div>
-          <label className="text-xs text-muted-foreground font-body block mb-3 uppercase tracking-wider">Difficulty</label>
+          <label className="text-xs text-muted-foreground font-body block mb-3 uppercase tracking-wider">
+            Difficulty
+          </label>
           <div className="flex gap-2">
-            {(['easy', 'medium', 'hard'] as const).map(d => (
+            {(["easy", "medium", "hard"] as const).map((d) => (
               <button
                 key={d}
                 onClick={() => onConfigChange({ difficulty: d })}
                 className={`flex-1 py-2.5 text-sm rounded-xl border transition-all capitalize font-body active:scale-[0.98] ${
                   config.difficulty === d
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-transparent text-muted-foreground border-border/30 hover:text-foreground hover:border-foreground/50'
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-transparent text-muted-foreground border-border/30 hover:text-foreground hover:border-foreground/50"
                 }`}
                 aria-label={`${d} difficulty`}
               >
@@ -125,31 +154,40 @@ const QuizSetup = ({ documentName, documentId, config, onConfigChange, onStart, 
           </div>
         </div>
 
-        {/* Question types */}
+        {/* Question type — single select (radio-style) */}
         <div>
-          <label className="text-xs text-muted-foreground font-body block mb-3 uppercase tracking-wider">Type</label>
+          <label className="text-xs text-muted-foreground font-body block mb-3 uppercase tracking-wider">
+            Type
+          </label>
           <div className="space-y-2">
-            {questionTypes.map(t => {
-              const active = config.types.includes(t.id);
+            {questionTypes.map((t) => {
+              const active = config.question_type === t.id;
               return (
                 <button
                   key={t.id}
-                  onClick={() => toggleType(t.id)}
+                  onClick={() => onConfigChange({ question_type: t.id })}
                   className={`w-full flex items-center gap-3 text-left px-4 py-3.5 rounded-xl border text-sm transition-all font-body ${
                     active
-                      ? 'border-primary bg-primary/5 text-foreground'
-                      : 'border-border/30 text-muted-foreground hover:text-foreground hover:border-foreground/50'
+                      ? "border-primary bg-primary/5 text-foreground"
+                      : "border-border/30 text-muted-foreground hover:text-foreground hover:border-foreground/50"
                   }`}
                   aria-label={`Select ${t.label}`}
                 >
-                  {active ? (
-                    <CheckSquare className="w-4 h-4 text-primary shrink-0" />
-                  ) : (
-                    <Square className="w-4 h-4 shrink-0" />
-                  )}
+                  {/* Radio circle indicator */}
+                  <span
+                    className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                      active ? "border-primary" : "border-muted-foreground/40"
+                    }`}
+                  >
+                    {active && (
+                      <span className="w-2 h-2 rounded-full bg-primary" />
+                    )}
+                  </span>
                   <div>
                     <span className="block">{t.label}</span>
-                    <span className="text-xs text-muted-foreground">{t.desc}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {t.desc}
+                    </span>
                   </div>
                 </button>
               );
@@ -157,19 +195,40 @@ const QuizSetup = ({ documentName, documentId, config, onConfigChange, onStart, 
           </div>
         </div>
 
+        {/* Optional topic input */}
+        <div>
+          <label className="text-xs text-muted-foreground font-body block mb-3 uppercase tracking-wider">
+            Topic{" "}
+            <span className="normal-case text-muted-foreground/60">
+              (optional)
+            </span>
+          </label>
+          <input
+            type="text"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="e.g. Machine Learning, Chapter 3..."
+            className="w-full bg-transparent border border-border/30 rounded-xl px-4 py-2.5 text-sm text-foreground font-body placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
+            aria-label="Focus topic"
+          />
+        </div>
+
         {/* Start button */}
         <button
-          onClick={onStart}
-          disabled={loading || config.types.length === 0}
+          onClick={handleStart}
+          disabled={loading}
           className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl text-sm hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-[0.98] flex items-center justify-center gap-2 font-body font-medium"
           aria-label="Start Quiz"
         >
           {loading ? (
-            <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" role="status" />
+            <div
+              className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"
+              role="status"
+            />
           ) : (
             <Play className="w-4 h-4" />
           )}
-          {loading ? 'Generating...' : 'Start Quiz'}
+          {loading ? "Generating..." : "Start Quiz"}
         </button>
       </motion.div>
     </motion.div>

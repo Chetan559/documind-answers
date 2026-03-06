@@ -24,7 +24,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <AnimatePresence mode="wait">
-              <SmoothCursor />
+              {/* <SmoothCursor /> */}
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/upload" element={<Upload />} />

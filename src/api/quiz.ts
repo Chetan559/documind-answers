@@ -1,104 +1,152 @@
+import { BASE_BACKEND_URL } from "@/config";
+
+// ── TypeScript interfaces matching real API response shapes ──
+
 export interface QuizQuestion {
   id: string;
-  question: string;
-  type: 'multiple-choice' | 'true-false' | 'short-answer';
-  options?: string[];
-  correctIndex?: number;
-  correctAnswer?: string;
-  explanation: string;
-  sourcePage: number;
+  question_index: number;
+  question_text: string;
+  question_type: "mcq" | "true_false" | "fill_in_the_blank";
+  difficulty: "easy" | "medium" | "hard";
+  options: string[] | null;
+  source_page: number | null;
 }
 
-export interface QuizConfig {
-  numQuestions: number;
-  difficulty: 'easy' | 'medium' | 'hard';
-  types: string[];
+export interface Quiz {
+  id: string;
+  pdf_id: string;
+  status: string;
+  question_count: number;
+  questions: QuizQuestion[];
+  created_at: string;
 }
 
-const mockQuestions: QuizQuestion[] = [
-  {
-    id: '1', type: 'multiple-choice',
-    question: 'Which of the following best describes the primary advantage of Retrieval-Augmented Generation (RAG) over standard language models?',
-    options: ['Faster inference speed', 'Grounded answers from source documents', 'Smaller model size', 'Better creative writing'],
-    correctIndex: 1,
-    explanation: 'RAG combines retrieval from a knowledge base with generation, ensuring answers are grounded in actual source documents rather than relying solely on parametric knowledge.',
-    sourcePage: 12,
-  },
-  {
-    id: '2', type: 'true-false',
-    question: 'The document states that the proposed method achieved a 23.4% improvement in accuracy over the baseline.',
-    options: ['True', 'False'],
-    correctIndex: 0,
-    explanation: 'Section 5.1 explicitly states: "Our method achieves a 23.4% improvement in retrieval accuracy compared to the BM25 baseline."',
-    sourcePage: 31,
-  },
-  {
-    id: '3', type: 'multiple-choice',
-    question: 'According to Section 4.2, what is the recommended chunk size for optimal retrieval performance?',
-    options: ['128 tokens', '256 tokens', '512 tokens', '1024 tokens'],
-    correctIndex: 2,
-    explanation: 'The authors found that 512-token chunks provided the best balance between context preservation and retrieval precision in their experiments.',
-    sourcePage: 22,
-  },
-  {
-    id: '4', type: 'true-false',
-    question: 'The authors recommend using cosine similarity over dot product for embedding comparison in high-dimensional spaces.',
-    options: ['True', 'False'],
-    correctIndex: 0,
-    explanation: 'Table 3 shows that cosine similarity consistently outperformed dot product across all tested embedding dimensions.',
-    sourcePage: 27,
-  },
-  {
-    id: '5', type: 'multiple-choice',
-    question: 'What embedding model was used in the primary experiments described in the paper?',
-    options: ['Word2Vec', 'GloVe', 'OpenAI text-embedding-ada-002', 'BERT base'],
-    correctIndex: 2,
-    explanation: 'The authors chose text-embedding-ada-002 for its strong performance on the MTEB benchmark and cost efficiency at scale.',
-    sourcePage: 18,
-  },
-  {
-    id: '6', type: 'short-answer',
-    question: 'What is the key difference between sparse and dense retrieval methods as described in the paper?',
-    correctAnswer: 'Sparse retrieval uses exact keyword matching (like BM25) while dense retrieval uses learned vector representations to capture semantic similarity.',
-    explanation: 'The paper dedicates Section 2.3 to contrasting these approaches, noting that dense retrieval captures semantic meaning while sparse methods rely on lexical overlap.',
-    sourcePage: 8,
-  },
-  {
-    id: '7', type: 'multiple-choice',
-    question: 'What evaluation metric did the authors primarily use to measure retrieval quality?',
-    options: ['BLEU score', 'Mean Reciprocal Rank (MRR)', 'Perplexity', 'F1 Score'],
-    correctIndex: 1,
-    explanation: 'MRR was chosen as the primary metric because it effectively captures whether the most relevant passage appears at the top of the ranked retrieval results.',
-    sourcePage: 24,
-  },
-  {
-    id: '8', type: 'true-false',
-    question: 'The paper concludes that fine-tuning the embedding model on domain-specific data provides no significant improvement.',
-    options: ['True', 'False'],
-    correctIndex: 1,
-    explanation: 'On the contrary, Section 6.2 demonstrates that domain-specific fine-tuning improved MRR by 11.2% on the medical dataset and 8.7% on the legal dataset.',
-    sourcePage: 38,
-  },
-];
+export interface PerQuestionResult {
+  question_id: string;
+  question_text: string;
+  is_correct: boolean;
+  user_answer: string | null;
+  correct_answer: string;
+  explanation: string | null;
+}
 
-export const generateQuiz = async (_docId: string, config: QuizConfig): Promise<QuizQuestion[]> => {
-  await new Promise(r => setTimeout(r, 2000));
-  const filtered = mockQuestions.filter(q => config.types.includes(q.type));
-  const pool = filtered.length > 0 ? filtered : mockQuestions;
-  return pool.slice(0, config.numQuestions);
+export interface QuizSubmitResult {
+  session_id: string;
+  score: number;
+  total: number;
+  percentage: number;
+  grade: string;
+  per_question: PerQuestionResult[];
+  weak_topics: string[];
+  recommendation: string;
+}
+
+export interface AppendResult {
+  id: string;
+  question_count: number;
+  new_questions_added: number;
+  questions: QuizQuestion[];
+}
+
+export interface GenerateConfig {
+  count: number;
+  question_type: "mcq" | "true_false" | "fill_in_the_blank";
+  difficulty: "easy" | "medium" | "hard";
+  topic?: string | null;
+  user_id?: string;
+}
+
+// ── Helper to handle API errors consistently ──
+
+async function handleResponse<T>(res: Response): Promise<T> {
+  if (res.ok) return res.json();
+
+  if (res.status === 409) throw new Error("PDF_NOT_READY");
+  if (res.status === 404) throw new Error("NOT_FOUND");
+  if (res.status === 422) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.detail || "Validation error — check request body");
+  }
+  throw new Error(`Server error (${res.status})`);
+}
+
+// ── API functions ──
+
+/** POST /api/quiz/{pdf_id}/generate */
+export const generateQuiz = async (
+  pdfId: string,
+  config: GenerateConfig,
+): Promise<Quiz> => {
+  const res = await fetch(`${BASE_BACKEND_URL}/api/quiz/${pdfId}/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      count: config.count,
+      question_type: config.question_type,
+      difficulty: config.difficulty,
+      topic: config.topic ?? null,
+      user_id: config.user_id ?? "default_user",
+    }),
+  });
+  return handleResponse<Quiz>(res);
 };
 
-export interface GradeResult {
-  result: 'correct' | 'partial' | 'incorrect';
-  feedback: string;
-}
+/** GET /api/quiz/{pdf_id}/list */
+export const listQuizzes = async (pdfId: string): Promise<Quiz[]> => {
+  const res = await fetch(`${BASE_BACKEND_URL}/api/quiz/${pdfId}/list`);
+  return handleResponse<Quiz[]>(res);
+};
 
-export const gradeShortAnswer = async (_questionId: string, _userAnswer: string): Promise<GradeResult> => {
-  await new Promise(r => setTimeout(r, 1000));
-  const outcomes: GradeResult[] = [
-    { result: 'correct', feedback: 'Your answer accurately captures the key distinction.' },
-    { result: 'partial', feedback: 'You identified one aspect correctly, but missed the role of semantic similarity in dense retrieval.' },
-    { result: 'incorrect', feedback: 'The answer does not address the core difference between sparse and dense retrieval methods.' },
-  ];
-  return outcomes[Math.floor(Math.random() * outcomes.length)];
+/** GET /api/quiz/{quiz_id} — no answers, for active quiz UI */
+export const getQuiz = async (quizId: string): Promise<Quiz> => {
+  const res = await fetch(`${BASE_BACKEND_URL}/api/quiz/${quizId}`);
+  return handleResponse<Quiz>(res);
+};
+
+/** POST /api/quiz/{quiz_id}/append */
+export const appendQuestions = async (
+  quizId: string,
+  opts: {
+    count?: number;
+    question_type?: string | null;
+    difficulty?: string | null;
+  },
+): Promise<AppendResult> => {
+  const res = await fetch(`${BASE_BACKEND_URL}/api/quiz/${quizId}/append`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(opts),
+  });
+  return handleResponse<AppendResult>(res);
+};
+
+/** POST /api/quiz/{quiz_id}/submit */
+export const submitQuiz = async (
+  quizId: string,
+  answers: Record<string, string>,
+): Promise<QuizSubmitResult> => {
+  const res = await fetch(`${BASE_BACKEND_URL}/api/quiz/${quizId}/submit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ answers }),
+  });
+  return handleResponse<QuizSubmitResult>(res);
+};
+
+/** GET /api/quiz/{quiz_id}/result */
+export const getQuizResult = async (
+  quizId: string,
+): Promise<QuizSubmitResult> => {
+  const res = await fetch(`${BASE_BACKEND_URL}/api/quiz/${quizId}/result`);
+  return handleResponse<QuizSubmitResult>(res);
+};
+
+/** DELETE /api/quiz/{quiz_id} */
+export const deleteQuiz = async (
+  quizId: string,
+): Promise<{ success: boolean; message: string }> => {
+  const res = await fetch(`${BASE_BACKEND_URL}/api/quiz/${quizId}`, {
+    method: "DELETE",
+  });
+  return handleResponse<{ success: boolean; message: string }>(res);
 };
