@@ -3,6 +3,24 @@
 import { FC, useEffect, useRef, useState } from "react";
 import { motion, useSpring } from "motion/react";
 
+/** Returns true only when the primary pointer device is a mouse (pointer: fine) */
+function useIsPointerDevice(): boolean {
+  const [hasMouse, setHasMouse] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(pointer: fine)").matches;
+  });
+
+  useEffect(() => {
+    const mq = window.matchMedia("(pointer: fine)");
+    const handler = (e: MediaQueryListEvent) => setHasMouse(e.matches);
+    setHasMouse(mq.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  return hasMouse;
+}
+
 interface Position {
   x: number;
   y: number;
@@ -89,6 +107,7 @@ export function SmoothCursor({
     restDelta: 0.001,
   },
 }: SmoothCursorProps) {
+  const isPointerDevice = useIsPointerDevice();
   const [isMoving, setIsMoving] = useState(false);
   const lastMousePos = useRef<Position>({ x: 0, y: 0 });
   const velocity = useRef<Position>({ x: 0, y: 0 });
@@ -170,15 +189,23 @@ export function SmoothCursor({
       });
     };
 
-    document.body.style.cursor = "none";
+    // Inject a global style so links/buttons don't show the native cursor
+    const styleEl = document.createElement("style");
+    styleEl.setAttribute("data-smooth-cursor", "");
+    styleEl.textContent = "*, *::before, *::after { cursor: none !important; }";
+    document.head.appendChild(styleEl);
+
     window.addEventListener("mousemove", throttledMouseMove);
 
     return () => {
       window.removeEventListener("mousemove", throttledMouseMove);
-      document.body.style.cursor = "auto";
+      styleEl.remove();
       if (rafId) cancelAnimationFrame(rafId);
     };
   }, [cursorX, cursorY, rotation, scale]);
+
+  // Don't render on touch/mobile devices
+  if (!isPointerDevice) return null;
 
   return (
     <motion.div
