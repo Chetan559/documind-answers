@@ -87,7 +87,12 @@ const Sidebar = ({ onUploadClick }: SidebarProps) => {
                   }`}
                   aria-label={`Open ${doc.name}`}
                 >
-                  <span className="truncate text-xs">{doc.name}</span>
+                  <span className="truncate text-xs flex items-center gap-1.5">
+                    {doc.status && doc.status !== 'ready' && (
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${doc.status === 'failed' ? 'bg-destructive' : 'bg-muted-foreground animate-pulse'}`} />
+                    )}
+                    {doc.name}
+                  </span>
                   <span className="flex items-center gap-1 shrink-0">
                     <span
                       role="button"

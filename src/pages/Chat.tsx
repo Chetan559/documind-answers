@@ -8,17 +8,22 @@ import ChatInput from '@/components/chat/ChatInput';
 import PDFViewer from '@/components/pdf/PDFViewer';
 import UploadModal from '@/components/upload/UploadModal';
 import { useDocuments } from '@/context/DocumentContext';
-import { sendMessage, type ChatMessage } from '@/api/chat';
+import { sendMessage, type ChatMessage, type Citation } from '@/api/chat';
 import { uploadDocument } from '@/api/documents';
+import { useToast } from '@/hooks/use-toast';
 
 const ChatPage = () => {
   const { documentId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { state, dispatch } = useDocuments();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(true);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [activeCitations, setActiveCitations] = useState<Citation[]>([]);
+  const [activePdfPage, setActivePdfPage] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const doc = state.documents.find(d => d.id === documentId);
@@ -32,12 +37,40 @@ const ChatPage = () => {
   }, [messages]);
 
   const handleSend = async (content: string) => {
+    if (doc && doc.status !== 'ready') {
+      toast({ title: 'PDF is still being processed', description: 'Please wait until processing is complete.', variant: 'destructive' });
+      return;
+    }
+
     const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', content, timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
     try {
-      const reply = await sendMessage(documentId || '', content);
-      setMessages(prev => [...prev, reply]);
+      const response = await sendMessage(documentId || '', content, sessionId);
+      setSessionId(response.session_id);
+
+      const assistantMsg: ChatMessage = {
+        id: response.message_id,
+        role: 'assistant',
+        content: response.answer,
+        timestamp: new Date(),
+        citations: response.citations,
+        follow_up: response.follow_up,
+      };
+      setMessages(prev => [...prev, assistantMsg]);
+
+      // Update citations and navigate to primary citation page
+      if (response.citations?.length) {
+        setActiveCitations(response.citations);
+        const primary = response.citations.find(c => c.is_primary);
+        if (primary) setActivePdfPage(primary.page_number);
+      }
+    } catch (err: any) {
+      if (err.message === 'PDF_NOT_READY') {
+        toast({ title: 'PDF still processing', description: 'Please wait until your document is ready.', variant: 'destructive' });
+      } else {
+        toast({ title: 'Error', description: 'Failed to get a response. Please try again.', variant: 'destructive' });
+      }
     } finally {
       setLoading(false);
     }
@@ -57,6 +90,11 @@ const ChatPage = () => {
               <span className="text-xs text-foreground font-body px-2 py-1 bg-surface rounded-md truncate max-w-[200px]">
                 {doc?.name || 'All Documents'}
               </span>
+              {doc && doc.status !== 'ready' && (
+                <span className="text-xs text-muted-foreground font-body capitalize px-2 py-0.5 bg-surface rounded-full border border-border/20">
+                  {doc.status}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -87,7 +125,40 @@ const ChatPage = () => {
               </div>
             )}
             {messages.map((msg) => (
-              <ChatMessageComponent key={msg.id} role={msg.role} content={msg.content} timestamp={msg.timestamp} />
+              <div key={msg.id}>
+                <ChatMessageComponent role={msg.role} content={msg.content} timestamp={msg.timestamp} />
+                {/* Follow-up suggestion */}
+                {msg.role === 'assistant' && msg.follow_up && (
+                  <div className="ml-10 mt-2">
+                    <button
+                      onClick={() => handleSend(msg.follow_up!)}
+                      className="text-xs font-body px-3 py-1.5 rounded-full border border-border/30 text-muted-foreground hover:text-foreground hover:border-foreground/50 transition-all"
+                    >
+                      <Sparkles className="w-3 h-3 inline mr-1" />
+                      {msg.follow_up}
+                    </button>
+                  </div>
+                )}
+                {/* Citation chips */}
+                {msg.role === 'assistant' && msg.citations && msg.citations.length > 0 && (
+                  <div className="ml-10 mt-2 flex flex-wrap gap-1.5">
+                    {msg.citations.map(c => (
+                      <button
+                        key={c.id}
+                        onClick={() => {
+                          setActiveCitations(msg.citations!);
+                          setActivePdfPage(c.page_number);
+                          setPdfOpen(true);
+                        }}
+                        className="text-xs font-body px-2 py-1 rounded border border-border/30 text-muted-foreground hover:text-foreground hover:bg-surface transition-all"
+                        title={c.cited_text}
+                      >
+                        📄 Page {c.page_number}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
             {loading && (
               <div className="flex gap-3">
@@ -107,11 +178,14 @@ const ChatPage = () => {
         </motion.div>
 
         {/* PDF Panel */}
-        {pdfOpen && (
+        {pdfOpen && documentId && (
           <div className="hidden lg:block w-[340px] shrink-0">
             <PDFViewer
+              pdfId={documentId}
               fileName={doc?.name}
-              totalPages={doc?.pageCount}
+              citations={activeCitations}
+              activePage={activePdfPage}
+              onPageChange={setActivePdfPage}
               onClose={() => setPdfOpen(false)}
             />
           </div>
