@@ -11,7 +11,7 @@ import QuizResults from "@/components/quiz/QuizResults";
 const QuizPage = () => {
   const { documentId } = useParams();
   const navigate = useNavigate();
-  const { state: docState } = useDocuments();
+  const { documents } = useAppStore();
   const {
     state,
     setConfig,
