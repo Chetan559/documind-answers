@@ -1,101 +1,130 @@
-import { useState, useRef, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import {
-  Sparkles,
-  ChevronRight,
-  ChevronLeft,
-  FileText,
-  BookOpen,
-  ArrowLeft,
-} from "lucide-react";
-import Sidebar from "@/components/layout/Sidebar";
-import ChatMessageComponent from "@/components/chat/ChatMessage";
-import ChatInput from "@/components/chat/ChatInput";
-import PDFViewer from "@/components/pdf/PDFViewer";
-import UploadModal from "@/components/upload/UploadModal";
-import { useDocuments } from "@/context/DocumentContext";
-import { sendMessage, type ChatMessage, type Citation } from "@/api/chat";
-import { uploadDocument } from "@/api/documents";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Sparkles, ChevronRight, ChevronLeft, FileText, BookOpen, ArrowLeft } from 'lucide-react';
+import Sidebar from '@/components/layout/Sidebar';
+import ChatMessageComponent from '@/components/chat/ChatMessage';
+import ChatInput from '@/components/chat/ChatInput';
+import PDFViewer from '@/components/pdf/PDFViewer';
+import { SessionDocBar } from '@/components/chat/SessionDocBar';
+import { useAppStore } from '@/store/useAppStore';
+import { sendMessage, type Citation } from '@/api/chat';
+import { useToast } from '@/hooks/use-toast';
+import { ChatMessage } from '@/types';
 
 const ChatPage = () => {
-  const { documentId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { state, dispatch } = useDocuments();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const {
+    sessions,
+    activeSessionId,
+    documents,
+    activePDFViewerId,
+    setActivePDFViewer,
+    addMessageToSession,
+    setBackendSessionId,
+    createSession,
+  } = useAppStore();
+
   const [loading, setLoading] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(true);
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
   const [activeCitations, setActiveCitations] = useState<Citation[]>([]);
   const [activePdfPage, setActivePdfPage] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const doc = state.documents.find((d) => d.id === documentId);
+  const activeSession = sessions.find((s) => s.id === activeSessionId);
+  const messages = activeSession?.messages || [];
+  const activePdfDoc = documents.find((d) => d.id === activePDFViewerId);
 
+  // Auto-create session if none active
   useEffect(() => {
-    if (documentId) dispatch({ type: "SET_ACTIVE_DOC", payload: documentId });
-  }, [documentId, dispatch]);
+    if (!activeSessionId) {
+      createSession([]);
+    }
+  }, [activeSessionId, createSession]);
+
+  // Auto-select first doc for PDF viewer
+  useEffect(() => {
+    if (activeSession && activeSession.documentIds.length > 0 && !activePDFViewerId) {
+      setActivePDFViewer(activeSession.documentIds[0]);
+    }
+  }, [activeSession, activePDFViewerId, setActivePDFViewer]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
       top: scrollRef.current.scrollHeight,
-      behavior: "smooth",
+      behavior: 'smooth',
     });
   }, [messages]);
 
   const handleSend = async (content: string) => {
-    if (doc && doc.status !== "ready") {
+    if (!activeSessionId || !activeSession) return;
+
+    // Use first document in session for chat API
+    const primaryDocId = activeSession.documentIds[0];
+    if (!primaryDocId) {
       toast({
-        title: "PDF is still being processed",
-        description: "Please wait until processing is complete.",
-        variant: "destructive",
+        title: 'No document attached',
+        description: 'Upload a PDF first to start chatting.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const doc = documents.find((d) => d.id === primaryDocId);
+    if (doc && doc.status !== 'ready') {
+      toast({
+        title: 'PDF is still being processed',
+        description: 'Please wait until processing is complete.',
+        variant: 'destructive',
       });
       return;
     }
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
-      role: "user",
+      role: 'user',
       content,
       timestamp: new Date(),
     };
-    setMessages((prev) => [...prev, userMsg]);
+    addMessageToSession(activeSessionId, userMsg);
     setLoading(true);
+
     try {
-      const response = await sendMessage(documentId || "", content, sessionId);
-      setSessionId(response.session_id);
+      const response = await sendMessage(
+        primaryDocId,
+        content,
+        activeSession.backendSessionId || null
+      );
+      setBackendSessionId(activeSessionId, response.session_id);
 
       const assistantMsg: ChatMessage = {
         id: response.message_id,
-        role: "assistant",
+        role: 'assistant',
         content: response.answer,
         timestamp: new Date(),
         citations: response.citations,
         follow_up: response.follow_up,
       };
-      setMessages((prev) => [...prev, assistantMsg]);
+      addMessageToSession(activeSessionId, assistantMsg);
 
-      // Update citations and navigate to primary citation page
       if (response.citations?.length) {
         setActiveCitations(response.citations);
         const primary = response.citations.find((c) => c.is_primary);
         if (primary) setActivePdfPage(primary.page_number);
       }
     } catch (err: any) {
-      if (err.message === "PDF_NOT_READY") {
+      if (err.message === 'PDF_NOT_READY') {
         toast({
-          title: "PDF still processing",
-          description: "Please wait until your document is ready.",
-          variant: "destructive",
+          title: 'PDF still processing',
+          description: 'Please wait until your document is ready.',
+          variant: 'destructive',
         });
       } else {
         toast({
-          title: "Error",
-          description: "Failed to get a response. Please try again.",
-          variant: "destructive",
+          title: 'Error',
+          description: 'Failed to get a response. Please try again.',
+          variant: 'destructive',
         });
       }
     } finally {
@@ -105,7 +134,7 @@ const ChatPage = () => {
 
   return (
     <div className="flex h-screen bg-background">
-      <Sidebar onUploadClick={() => setUploadOpen(true)} />
+      <Sidebar />
 
       <div className="flex-1 flex">
         {/* Chat Panel */}
@@ -118,7 +147,7 @@ const ChatPage = () => {
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
             <div className="flex items-center gap-2">
               <button
-                onClick={() => navigate("/upload")}
+                onClick={() => navigate('/upload')}
                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors font-body"
                 aria-label="Back to Documents"
               >
@@ -126,22 +155,21 @@ const ChatPage = () => {
               </button>
               <FileText className="w-4 h-4 text-muted-foreground" />
               <span className="text-xs text-foreground font-body px-2 py-1 bg-surface rounded-md truncate max-w-[200px]">
-                {doc?.name || "All Documents"}
+                {activeSession?.title || 'New Chat'}
               </span>
-              {doc && doc.status !== "ready" && (
-                <span className="text-xs text-muted-foreground font-body capitalize px-2 py-0.5 bg-surface rounded-full border border-border/20">
-                  {doc.status}
-                </span>
-              )}
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => navigate(`/quiz/${documentId}`)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-body font-medium bg-surface border border-border/30 text-muted-foreground hover:text-foreground hover:border-foreground/50 transition-all active:scale-95"
-                aria-label="Start Quiz"
-              >
-                <BookOpen className="w-3.5 h-3.5" /> Quiz
-              </button>
+              {activeSession?.documentIds[0] && (
+                <button
+                  onClick={() =>
+                    navigate(`/quiz/${activeSession.documentIds[0]}`)
+                  }
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-body font-medium bg-surface border border-border/30 text-muted-foreground hover:text-foreground hover:border-foreground/50 transition-all active:scale-95"
+                  aria-label="Start Quiz"
+                >
+                  <BookOpen className="w-3.5 h-3.5" /> Quiz
+                </button>
+              )}
               <button
                 onClick={() => setPdfOpen(!pdfOpen)}
                 className="hidden lg:flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors font-body"
@@ -152,7 +180,7 @@ const ChatPage = () => {
                 ) : (
                   <ChevronLeft className="w-3.5 h-3.5" />
                 )}
-                {pdfOpen ? "Hide PDF" : "Show PDF"}
+                {pdfOpen ? 'Hide PDF' : 'Show PDF'}
               </button>
             </div>
           </div>
@@ -166,7 +194,7 @@ const ChatPage = () => {
                   Ask your first question
                 </p>
                 <p className="text-sm text-muted-foreground font-body">
-                  DocuMind will find answers grounded in your document
+                  DocuMind will find answers grounded in your documents
                 </p>
               </div>
             )}
@@ -177,8 +205,7 @@ const ChatPage = () => {
                   content={msg.content}
                   timestamp={msg.timestamp}
                 />
-                {/* Follow-up suggestion */}
-                {msg.role === "assistant" && msg.follow_up && (
+                {msg.role === 'assistant' && msg.follow_up && (
                   <div className="ml-10 mt-2">
                     <button
                       onClick={() => handleSend(msg.follow_up!)}
@@ -189,8 +216,7 @@ const ChatPage = () => {
                     </button>
                   </div>
                 )}
-                {/* Citation chips */}
-                {msg.role === "assistant" &&
+                {msg.role === 'assistant' &&
                   msg.citations &&
                   msg.citations.length > 0 && (
                     <div className="ml-10 mt-2 flex flex-wrap gap-1.5">
@@ -230,15 +256,18 @@ const ChatPage = () => {
             )}
           </div>
 
+          {/* Session doc bar */}
+          <SessionDocBar />
+
           <ChatInput onSend={handleSend} disabled={loading} />
         </motion.div>
 
         {/* PDF Panel */}
-        {pdfOpen && documentId && (
+        {pdfOpen && activePDFViewerId && (
           <div className="hidden lg:block w-[375px] shrink-0 overflow-hidden">
             <PDFViewer
-              pdfId={documentId}
-              fileName={doc?.name}
+              pdfId={activePDFViewerId}
+              fileName={activePdfDoc?.name}
               citations={activeCitations}
               activePage={activePdfPage}
               onPageChange={setActivePdfPage}
@@ -247,17 +276,6 @@ const ChatPage = () => {
           </div>
         )}
       </div>
-
-      <UploadModal
-        isOpen={uploadOpen}
-        onClose={() => setUploadOpen(false)}
-        onUpload={async (files) => {
-          for (const f of files) {
-            const d = await uploadDocument(f);
-            dispatch({ type: "ADD_DOCUMENT", payload: d });
-          }
-        }}
-      />
     </div>
   );
 };
