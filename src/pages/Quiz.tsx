@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { useDocuments } from "@/context/DocumentContext";
+import { useAppStore } from "@/store/useAppStore";
 import { useQuizState } from "@/hooks/useQuizState";
 import { generateQuiz, submitQuiz } from "@/api/quiz";
 import QuizSetup from "@/components/quiz/QuizSetup";
