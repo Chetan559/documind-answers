@@ -1,236 +1,107 @@
-import { useState, useRef, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import {
-  Upload,
-  MessageSquare,
-  Search,
-  FileText,
-  Folder,
-  ChevronRight,
-  MoreVertical,
-  Share2,
-  Menu,
-  X,
-  BookOpen,
-  Trash2,
-  LayoutDashboard,
-} from "lucide-react";
-import { useDocuments } from "@/context/DocumentContext";
-import { deleteDocument } from "@/api/documents";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Upload, FileText, Clock, Plus, Share2, Menu, X } from 'lucide-react';
+import { UploadTab } from './sidebar/UploadTab';
+import { DocumentsTab } from './sidebar/DocumentsTab';
+import { HistoryTab } from './sidebar/HistoryTab';
+import { useAppStore } from '@/store/useAppStore';
+import { motion, AnimatePresence } from 'framer-motion';
 
-interface SidebarProps {
-  onUploadClick?: () => void;
-}
+type Tab = 'upload' | 'documents' | 'history';
 
-const Sidebar = ({ onUploadClick }: SidebarProps) => {
-  const { state, dispatch } = useDocuments();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { toast } = useToast();
-  const [foldersOpen, setFoldersOpen] = useState(true);
-  const [docsOpen, setDocsOpen] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+const Sidebar = () => {
+  const [activeTab, setActiveTab] = useState<Tab>('documents');
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const { createSession } = useAppStore();
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpenId(null);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  const tabs: { id: Tab; icon: typeof Upload; label: string }[] = [
+    { id: 'upload', icon: Upload, label: 'Upload' },
+    { id: 'documents', icon: FileText, label: 'Docs' },
+    { id: 'history', icon: Clock, label: 'History' },
+  ];
 
-  const handleDelete = async (docId: string, docName: string) => {
-    try {
-      await deleteDocument(docId);
-      dispatch({ type: "REMOVE_DOCUMENT", payload: docId });
-      setMenuOpenId(null);
-      toast({ title: "Deleted", description: `${docName} has been removed.` });
-      if (location.pathname.includes(docId)) navigate("/upload");
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to delete document.",
-        variant: "destructive",
-      });
-    }
+  const handleNewChat = () => {
+    createSession([]);
+    navigate('/chat');
+    setMobileOpen(false);
   };
-
-  const filteredDocs = state.documents.filter((d) =>
-    d.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
 
   const content = (
     <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
-      <div className="p-4 space-y-3">
-        <button
-          onClick={() => {
-            navigate("/upload");
-            setMobileOpen(false);
-          }}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-border/40 rounded-lg text-sm text-foreground hover:bg-sidebar-accent transition-all active:scale-95 font-body"
-          aria-label="My Documents"
-        >
-          <LayoutDashboard className="w-4 h-4" /> My Documents
-        </button>
-        <button
-          onClick={onUploadClick}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-border/40 rounded-lg text-sm text-foreground hover:bg-sidebar-accent transition-all active:scale-95 font-body"
-          aria-label="Upload Documents"
-        >
-          <Upload className="w-4 h-4" /> Upload Documents
-        </button>
-        <button
-          onClick={() => navigate("/chat/all")}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm hover:bg-primary/90 transition-all active:scale-95 font-body"
-          aria-label="Chat with All Documents"
-        >
-          <MessageSquare className="w-4 h-4" /> Chat with All
-        </button>
-      </div>
-
-      <div className="px-4 pb-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search Documents"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-surface border border-sidebar-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring font-body"
-            aria-label="Search documents"
-          />
+      {/* Logo */}
+      <div className="px-4 py-4 border-b border-sidebar-border">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 bg-primary rounded-md flex items-center justify-center">
+            <span className="text-[10px] font-display text-primary-foreground">D</span>
+          </div>
+          <span className="font-display text-sm text-foreground">DocuMind</span>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-2">
-        <button
-          onClick={() => setFoldersOpen(!foldersOpen)}
-          className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors font-body"
-        >
-          <ChevronRight
-            className={`w-3 h-3 transition-transform ${foldersOpen ? "rotate-90" : ""}`}
-          />
-          <Folder className="w-3.5 h-3.5" /> Folders
-        </button>
-
-        <button
-          onClick={() => setDocsOpen(!docsOpen)}
-          className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mt-1 font-body"
-        >
-          <ChevronRight
-            className={`w-3 h-3 transition-transform ${docsOpen ? "rotate-90" : ""}`}
-          />
-          <FileText className="w-3.5 h-3.5" /> Documents
-        </button>
-
-        {docsOpen && (
-          <div className="ml-4 mt-1 space-y-0.5">
-            {filteredDocs.map((doc) => {
-              const isActive =
-                state.activeDocId === doc.id ||
-                location.pathname.includes(doc.id);
-              return (
-                <button
-                  key={doc.id}
-                  onClick={() => {
-                    dispatch({ type: "SET_ACTIVE_DOC", payload: doc.id });
-                    navigate(`/chat/${doc.id}`);
-                    setMobileOpen(false);
-                  }}
-                  className={`flex items-center justify-between w-full px-2 py-1.5 rounded-md text-sm truncate transition-all font-body group ${
-                    isActive
-                      ? "bg-sidebar-accent text-accent-foreground border-l-2 border-primary"
-                      : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground hover:border-l-2 hover:border-primary/50"
-                  }`}
-                  aria-label={`Open ${doc.name}`}
-                >
-                  <span className="truncate text-xs flex items-center gap-1.5">
-                    {doc.status && doc.status !== "ready" && (
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${doc.status === "failed" ? "bg-destructive" : "bg-muted-foreground animate-pulse"}`}
-                      />
-                    )}
-                    {doc.name}
-                  </span>
-                  <span className="flex items-center gap-1 shrink-0">
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/quiz/${doc.id}`);
-                        setMobileOpen(false);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.stopPropagation();
-                          navigate(`/quiz/${doc.id}`);
-                          setMobileOpen(false);
-                        }
-                      }}
-                      className="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity rounded hover:bg-primary/10"
-                      aria-label={`Quiz ${doc.name}`}
-                    >
-                      <BookOpen className="w-3.5 h-3.5" />
-                    </span>
-                    <div
-                      className="relative"
-                      ref={menuOpenId === doc.id ? menuRef : undefined}
-                    >
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMenuOpenId(menuOpenId === doc.id ? null : doc.id);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.stopPropagation();
-                            setMenuOpenId(
-                              menuOpenId === doc.id ? null : doc.id,
-                            );
-                          }
-                        }}
-                        className="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity rounded hover:bg-primary/10 cursor-pointer"
-                        aria-label={`Options for ${doc.name}`}
-                      >
-                        <MoreVertical className="w-3.5 h-3.5" />
-                      </span>
-                      {menuOpenId === doc.id && (
-                        <div className="absolute right-0 top-5 z-50 min-w-[120px] bg-popover border border-border rounded-md shadow-md py-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(doc.id, doc.name);
-                            }}
-                            className="flex items-center gap-2 w-full px-3 py-1.5 text-xs font-body text-destructive hover:bg-destructive/10 transition-colors"
-                          >
-                            <Trash2 className="w-3 h-3" /> Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+      {/* Tab bar */}
+      <div className="flex border-b border-sidebar-border">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="flex-1 flex flex-col items-center gap-1 py-2.5 relative transition-colors"
+            >
+              <Icon
+                className={`w-4 h-4 ${
+                  isActive ? 'text-foreground' : 'text-muted-foreground'
+                }`}
+              />
+              <span
+                className={`text-[9px] font-body ${
+                  isActive ? 'text-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                {tab.label}
+              </span>
+              {isActive && (
+                <motion.div
+                  layoutId="sidebar-tab-indicator"
+                  className="absolute bottom-0 left-2 right-2 h-0.5 bg-foreground rounded-full"
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="p-4 border-t border-sidebar-border">
+      {/* Tab content */}
+      <div className="flex-1 overflow-y-auto">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 8 }}
+            transition={{ duration: 0.15 }}
+          >
+            {activeTab === 'upload' && <UploadTab />}
+            {activeTab === 'documents' && <DocumentsTab />}
+            {activeTab === 'history' && <HistoryTab />}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Bottom actions */}
+      <div className="p-3 border-t border-sidebar-border space-y-2">
         <button
-          className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors font-body"
-          aria-label="Share Your Chatbot"
+          onClick={handleNewChat}
+          className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-body font-medium hover:bg-primary/90 transition-colors"
         >
-          <Share2 className="w-3.5 h-3.5" /> Share Your Chatbot
+          <Plus className="w-3.5 h-3.5" />
+          New Chat
+        </button>
+        <button className="w-full flex items-center justify-center gap-2 py-2 text-xs font-body text-muted-foreground hover:text-foreground transition-colors">
+          <Share2 className="w-3.5 h-3.5" />
+          Share Chatbot
         </button>
       </div>
     </div>
@@ -238,14 +109,20 @@ const Sidebar = ({ onUploadClick }: SidebarProps) => {
 
   return (
     <>
+      {/* Mobile toggle */}
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
         className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-surface rounded-md border border-sidebar-border"
         aria-label="Toggle sidebar"
       >
-        {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+        {mobileOpen ? (
+          <X className="w-4 h-4" />
+        ) : (
+          <Menu className="w-4 h-4" />
+        )}
       </button>
 
+      {/* Mobile overlay */}
       {mobileOpen && (
         <div
           className="lg:hidden fixed inset-0 z-40 bg-background/80 backdrop-blur-sm"
@@ -254,7 +131,9 @@ const Sidebar = ({ onUploadClick }: SidebarProps) => {
       )}
 
       <aside
-        className={`fixed lg:relative z-40 w-[280px] h-screen shrink-0 transition-transform lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed lg:relative z-40 w-[280px] h-screen shrink-0 transition-transform lg:translate-x-0 ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
       >
         {content}
       </aside>

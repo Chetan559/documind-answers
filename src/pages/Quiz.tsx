@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { useDocuments } from "@/context/DocumentContext";
+import { useAppStore } from "@/store/useAppStore";
 import { useQuizState } from "@/hooks/useQuizState";
 import { generateQuiz, submitQuiz } from "@/api/quiz";
 import QuizSetup from "@/components/quiz/QuizSetup";
@@ -11,7 +11,7 @@ import QuizResults from "@/components/quiz/QuizResults";
 const QuizPage = () => {
   const { documentId } = useParams();
   const navigate = useNavigate();
-  const { state: docState } = useDocuments();
+  const { documents } = useAppStore();
   const {
     state,
     setConfig,
@@ -25,7 +25,7 @@ const QuizPage = () => {
     resetToSetup,
   } = useQuizState();
 
-  const doc = docState.documents.find((d) => d.id === documentId);
+  const doc = documents.find((d) => d.id === documentId);
 
   // ── Generate quiz via API ──
   const handleStart = async () => {
