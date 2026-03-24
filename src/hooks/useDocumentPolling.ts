@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { getDocumentStatus } from '@/api/documents';
-import { useDocuments } from '@/context/DocumentContext';
+import { useAppStore } from '@/store/useAppStore';
 
 export function useDocumentPolling(docId: string | null) {
-  const { dispatch } = useDocuments();
+  const updateDocument = useAppStore((s) => s.updateDocument);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -12,14 +12,11 @@ export function useDocumentPolling(docId: string | null) {
     const poll = async () => {
       try {
         const status = await getDocumentStatus(docId);
-        dispatch({
-          type: 'UPDATE_DOCUMENT',
-          payload: {
-            id: docId,
-            status: status.status,
-            total_pages: status.total_pages,
-            name: status.name,
-          },
+        updateDocument({
+          id: docId,
+          status: status.status,
+          pageCount: status.total_pages,
+          name: status.name,
         });
         if (status.status === 'ready' || status.status === 'failed') {
           if (intervalRef.current) clearInterval(intervalRef.current);
@@ -35,5 +32,5 @@ export function useDocumentPolling(docId: string | null) {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [docId, dispatch]);
+  }, [docId, updateDocument]);
 }
