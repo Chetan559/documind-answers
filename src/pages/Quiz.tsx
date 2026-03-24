@@ -25,7 +25,7 @@ const QuizPage = () => {
     resetToSetup,
   } = useQuizState();
 
-  const doc = docState.documents.find((d) => d.id === documentId);
+  const doc = documents.find((d) => d.id === documentId);
 
   // ── Generate quiz via API ──
   const handleStart = async () => {
