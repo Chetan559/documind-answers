@@ -10,6 +10,7 @@ import { SessionDocBar } from '@/components/chat/SessionDocBar';
 import { CitationExportModal } from '@/components/modals/CitationExportModal';
 import { useAppStore } from '@/store/useAppStore';
 import { sendMessage, type Citation } from '@/api/chat';
+import { getDocumentStatus } from '@/api/documents';
 import { useToast } from '@/hooks/use-toast';
 import { ChatMessage } from '@/types';
 
@@ -25,6 +26,7 @@ const ChatPage = () => {
     addMessageToSession,
     setBackendSessionId,
     createSession,
+    updateDocument,
   } = useAppStore();
 
   const [loading, setLoading] = useState(false);
@@ -71,8 +73,19 @@ const ChatPage = () => {
 
     const doc = documents.find((d) => d.id === primaryDocId);
     if (doc && doc.status !== 'ready') {
-      toast({ title: 'PDF is still being processed', description: 'Please wait until processing is complete.', variant: 'destructive' });
-      return;
+      // Re-check status from backend — the store may be stale
+      try {
+        const fresh = await getDocumentStatus(primaryDocId);
+        if (fresh.status === 'ready') {
+          updateDocument({ id: primaryDocId, status: 'ready' });
+        } else {
+          toast({ title: 'PDF is still being processed', description: 'Please wait until processing is complete.', variant: 'destructive' });
+          return;
+        }
+      } catch {
+        toast({ title: 'PDF is still being processed', description: 'Please wait until processing is complete.', variant: 'destructive' });
+        return;
+      }
     }
 
     const userMsg: ChatMessage = {

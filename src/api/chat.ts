@@ -1,4 +1,4 @@
-import { BASE_BACKEND_URL } from '@/config';
+import { authFetch, apiUrl } from '@/lib/authFetch';
 
 export interface Citation {
   id: string;
@@ -33,15 +33,13 @@ export const sendMessage = async (
   pdfId: string,
   message: string,
   sessionId: string | null = null,
-  userId: string = 'default_user'
 ): Promise<ChatResponse> => {
-  const res = await fetch(`${BASE_BACKEND_URL}/api/chat/${pdfId}`, {
+  const res = await authFetch(apiUrl(`/api/chat/${pdfId}`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       message,
       session_id: sessionId,
-      user_id: userId,
     }),
   });
 
@@ -53,13 +51,13 @@ export const sendMessage = async (
 };
 
 export const getChatHistory = async (pdfId: string, sessionId: string) => {
-  const res = await fetch(`${BASE_BACKEND_URL}/api/chat/${pdfId}/history/${sessionId}`);
+  const res = await authFetch(apiUrl(`/api/chat/${pdfId}/history/${sessionId}`));
   if (!res.ok) throw new Error(`History failed: ${res.status}`);
   return res.json();
 };
 
 export const clearChatHistory = async (pdfId: string, sessionId: string) => {
-  const res = await fetch(`${BASE_BACKEND_URL}/api/chat/${pdfId}/history/${sessionId}`, {
+  const res = await authFetch(apiUrl(`/api/chat/${pdfId}/history/${sessionId}`), {
     method: 'DELETE',
   });
   if (!res.ok) throw new Error(`Clear failed: ${res.status}`);

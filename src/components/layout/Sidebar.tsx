@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, FileText, Clock, Plus, Share2, Menu, X } from 'lucide-react';
+import { Upload, FileText, Clock, Plus, Menu, X, LogOut } from 'lucide-react';
 import { UploadTab } from './sidebar/UploadTab';
 import { DocumentsTab } from './sidebar/DocumentsTab';
 import { HistoryTab } from './sidebar/HistoryTab';
@@ -13,7 +13,7 @@ const Sidebar = () => {
   const [activeTab, setActiveTab] = useState<Tab>('documents');
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
-  const { createSession } = useAppStore();
+  const { createSession, user, logout } = useAppStore();
 
   const tabs: { id: Tab; icon: typeof Upload; label: string }[] = [
     { id: 'upload', icon: Upload, label: 'Upload' },
@@ -25,6 +25,11 @@ const Sidebar = () => {
     createSession([]);
     navigate('/chat');
     setMobileOpen(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   const content = (
@@ -99,10 +104,34 @@ const Sidebar = () => {
           <Plus className="w-3.5 h-3.5" />
           New Chat
         </button>
-        <button className="w-full flex items-center justify-center gap-2 py-2 text-xs font-body text-muted-foreground hover:text-foreground transition-colors">
-          <Share2 className="w-3.5 h-3.5" />
-          Share Chatbot
-        </button>
+
+        {/* User profile */}
+        {user && (
+          <div className="flex items-center gap-2 px-1 pt-1">
+            {user.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt={user.name || 'User'}
+                className="w-7 h-7 rounded-full border border-sidebar-border"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium">
+                {(user.name || user.email || '?')[0].toUpperCase()}
+              </div>
+            )}
+            <span className="text-xs font-body text-muted-foreground truncate flex-1">
+              {user.name || user.email}
+            </span>
+            <button
+              onClick={handleLogout}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

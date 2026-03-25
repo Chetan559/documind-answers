@@ -1,4 +1,4 @@
-import { BASE_BACKEND_URL } from "@/config";
+import { authFetch, apiUrl } from "@/lib/authFetch";
 
 // ── TypeScript interfaces matching real API response shapes ──
 
@@ -53,7 +53,6 @@ export interface GenerateConfig {
   question_type: "mcq" | "true_false" | "fill_in_the_blank";
   difficulty: "easy" | "medium" | "hard";
   topic?: string | null;
-  user_id?: string;
 }
 
 // ── Helper to handle API errors consistently ──
@@ -77,7 +76,7 @@ export const generateQuiz = async (
   pdfId: string,
   config: GenerateConfig,
 ): Promise<Quiz> => {
-  const res = await fetch(`${BASE_BACKEND_URL}/api/quiz/${pdfId}/generate`, {
+  const res = await authFetch(apiUrl(`/api/quiz/${pdfId}/generate`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -85,7 +84,6 @@ export const generateQuiz = async (
       question_type: config.question_type,
       difficulty: config.difficulty,
       topic: config.topic ?? null,
-      user_id: config.user_id ?? "default_user",
     }),
   });
   return handleResponse<Quiz>(res);
@@ -93,13 +91,13 @@ export const generateQuiz = async (
 
 /** GET /api/quiz/{pdf_id}/list */
 export const listQuizzes = async (pdfId: string): Promise<Quiz[]> => {
-  const res = await fetch(`${BASE_BACKEND_URL}/api/quiz/${pdfId}/list`);
+  const res = await authFetch(apiUrl(`/api/quiz/${pdfId}/list`));
   return handleResponse<Quiz[]>(res);
 };
 
 /** GET /api/quiz/{quiz_id} — no answers, for active quiz UI */
 export const getQuiz = async (quizId: string): Promise<Quiz> => {
-  const res = await fetch(`${BASE_BACKEND_URL}/api/quiz/${quizId}`);
+  const res = await authFetch(apiUrl(`/api/quiz/${quizId}`));
   return handleResponse<Quiz>(res);
 };
 
@@ -112,7 +110,7 @@ export const appendQuestions = async (
     difficulty?: string | null;
   },
 ): Promise<AppendResult> => {
-  const res = await fetch(`${BASE_BACKEND_URL}/api/quiz/${quizId}/append`, {
+  const res = await authFetch(apiUrl(`/api/quiz/${quizId}/append`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(opts),
@@ -125,7 +123,7 @@ export const submitQuiz = async (
   quizId: string,
   answers: Record<string, string>,
 ): Promise<QuizSubmitResult> => {
-  const res = await fetch(`${BASE_BACKEND_URL}/api/quiz/${quizId}/submit`, {
+  const res = await authFetch(apiUrl(`/api/quiz/${quizId}/submit`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ answers }),
@@ -137,7 +135,7 @@ export const submitQuiz = async (
 export const getQuizResult = async (
   quizId: string,
 ): Promise<QuizSubmitResult> => {
-  const res = await fetch(`${BASE_BACKEND_URL}/api/quiz/${quizId}/result`);
+  const res = await authFetch(apiUrl(`/api/quiz/${quizId}/result`));
   return handleResponse<QuizSubmitResult>(res);
 };
 
@@ -145,7 +143,7 @@ export const getQuizResult = async (
 export const deleteQuiz = async (
   quizId: string,
 ): Promise<{ success: boolean; message: string }> => {
-  const res = await fetch(`${BASE_BACKEND_URL}/api/quiz/${quizId}`, {
+  const res = await authFetch(apiUrl(`/api/quiz/${quizId}`), {
     method: "DELETE",
   });
   return handleResponse<{ success: boolean; message: string }>(res);

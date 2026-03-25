@@ -5,6 +5,7 @@ import {
   Annotation, AnnotationCollection, AnnotationColor, AnnotationRect,
   DocumentMetadata,
 } from '@/types';
+import type { AuthUser } from '@/api/auth';
 
 interface AppStore extends AppState {
   createSession: (documentIds: string[]) => ChatSession;
@@ -45,6 +46,12 @@ interface AppStore extends AppState {
   // Metadata actions
   setDocumentMetadata: (docId: string, metadata: DocumentMetadata) => void;
   updateDocumentMetadata: (docId: string, partial: Partial<DocumentMetadata>) => void;
+
+  // Auth
+  user: AuthUser | null;
+  accessToken: string | null;
+  setAuth: (token: string, user: AuthUser) => void;
+  logout: () => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -59,6 +66,8 @@ export const useAppStore = create<AppStore>()(
       annotationCollections: [],
       activeAnnotationId: null,
       documentMetadata: {},
+      user: null,
+      accessToken: null,
 
       createSession: (documentIds) => {
         const session: ChatSession = {
@@ -255,6 +264,10 @@ export const useAppStore = create<AppStore>()(
             [docId]: { ...s.documentMetadata[docId], ...partial },
           },
         })),
+
+      // Auth
+      setAuth: (token, authUser) => set({ accessToken: token, user: authUser }),
+      logout: () => set({ accessToken: null, user: null }),
     }),
     {
       name: 'documind-store',
@@ -267,6 +280,8 @@ export const useAppStore = create<AppStore>()(
         annotations: state.annotations,
         annotationCollections: state.annotationCollections,
         documentMetadata: state.documentMetadata,
+        user: state.user,
+        accessToken: state.accessToken,
       }),
     }
   )
