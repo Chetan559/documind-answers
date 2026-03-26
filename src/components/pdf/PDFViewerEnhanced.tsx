@@ -28,7 +28,9 @@ function CitationHighlight({ bbox, pageSize, pdfNativeSize }: CitationHighlightP
   const scaleX = pageSize.width / pdfNativeSize.width;
   const scaleY = pageSize.height / pdfNativeSize.height;
   const left = bbox.x0 * scaleX;
-  const top = pageSize.height - bbox.y1 * scaleY;
+  // PyMuPDF get_text('blocks') uses top-origin coordinates (y0 = top of block)
+  // No flip needed — just scale directly
+  const top = bbox.y0 * scaleY;
   const width = (bbox.x1 - bbox.x0) * scaleX;
   const height = (bbox.y1 - bbox.y0) * scaleY;
 
@@ -208,7 +210,12 @@ const PDFViewerEnhanced = ({
           >
             <div className="flex flex-col items-center gap-4">
               {Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => {
-                const pageCitations = citations.filter((c) => c.page_number === pageNum);
+                const pageCitations = citations.filter((c) => {
+                  if (c.page_number !== pageNum) return false;
+                  // source_pdf_id is null for legacy single-PDF sessions — show all in that case
+                  if (c.source_pdf_id && c.source_pdf_id !== pdfId) return false;
+                  return true;
+                });
                 const ps = pageSizes[pageNum] || { width: 0, height: 0 };
                 const ns = pdfNativeSizes[pageNum] || { width: 612, height: 792 };
 

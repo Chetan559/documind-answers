@@ -3,6 +3,7 @@ import { authFetch, apiUrl } from '@/lib/authFetch';
 export interface Citation {
   id: string;
   chunk_id: string;
+  source_pdf_id: string | null;   // which PDF this citation came from
   page_number: number;
   bbox: { x0: number; y0: number; x1: number; y1: number };
   cited_text: string;
@@ -29,23 +30,28 @@ export interface ChatResponse {
   follow_up?: string;
 }
 
+/**
+ * Multi-document chat — sends all PDF IDs so RAG retrieves from all.
+ * Falls back to single-PDF endpoint if only one ID.
+ */
 export const sendMessage = async (
-  pdfId: string,
+  pdfIds: string | string[],
   message: string,
   sessionId: string | null = null,
 ): Promise<ChatResponse> => {
-  const res = await authFetch(apiUrl(`/api/chat/${pdfId}`), {
+  const ids = Array.isArray(pdfIds) ? pdfIds : [pdfIds];
+
+  const res = await authFetch(apiUrl('/api/chat/'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      pdf_ids: ids,
       message,
       session_id: sessionId,
     }),
   });
 
-  if (res.status === 409) {
-    throw new Error('PDF_NOT_READY');
-  }
+  if (res.status === 409) throw new Error('PDF_NOT_READY');
   if (!res.ok) throw new Error(`Chat failed: ${res.status}`);
   return res.json();
 };

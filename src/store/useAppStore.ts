@@ -266,8 +266,41 @@ export const useAppStore = create<AppStore>()(
         })),
 
       // Auth
-      setAuth: (token, authUser) => set({ accessToken: token, user: authUser }),
-      logout: () => set({ accessToken: null, user: null }),
+      setAuth: (token, authUser) => set((s) => {
+        // If a different user is signing in, wipe previous user's data
+        const switchingUser = s.user && s.user.id !== authUser.id;
+        if (switchingUser) {
+          return {
+            accessToken: token,
+            user: authUser,
+            // Clear all previous user's data
+            documents: [],
+            folders: [],
+            sessions: [],
+            activeSessionId: null,
+            activePDFViewerId: null,
+            annotations: [],
+            annotationCollections: [],
+            activeAnnotationId: null,
+            documentMetadata: {},
+          };
+        }
+        return { accessToken: token, user: authUser };
+      }),
+      logout: () => set({
+        accessToken: null,
+        user: null,
+        // Wipe all user-specific data on logout
+        documents: [],
+        folders: [],
+        sessions: [],
+        activeSessionId: null,
+        activePDFViewerId: null,
+        annotations: [],
+        annotationCollections: [],
+        activeAnnotationId: null,
+        documentMetadata: {},
+      }),
     }),
     {
       name: 'documind-store',

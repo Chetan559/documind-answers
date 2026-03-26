@@ -65,26 +65,29 @@ const ChatPage = () => {
   const handleSend = async (content: string) => {
     if (!activeSessionId || !activeSession) return;
 
-    const primaryDocId = activeSession.documentIds[0];
-    if (!primaryDocId) {
+    const allDocIds = activeSession.documentIds;
+    if (!allDocIds.length) {
       toast({ title: 'No document attached', description: 'Upload a PDF first to start chatting.', variant: 'destructive' });
       return;
     }
 
-    const doc = documents.find((d) => d.id === primaryDocId);
-    if (doc && doc.status !== 'ready') {
-      // Re-check status from backend — the store may be stale
-      try {
-        const fresh = await getDocumentStatus(primaryDocId);
-        if (fresh.status === 'ready') {
-          updateDocument({ id: primaryDocId, status: 'ready' });
-        } else {
-          toast({ title: 'PDF is still being processed', description: 'Please wait until processing is complete.', variant: 'destructive' });
+    // Validate all attached docs are ready (re-check backend for stale status)
+    for (const docId of allDocIds) {
+      const doc = documents.find((d) => d.id === docId);
+      if (doc && doc.status !== 'ready') {
+        try {
+          const fresh = await getDocumentStatus(docId);
+          if (fresh.status === 'ready') {
+            updateDocument({ id: docId, status: 'ready' });
+          } else {
+            const name = doc.name || docId;
+            toast({ title: 'Document still processing', description: `"${name}" is not ready yet. Please wait.`, variant: 'destructive' });
+            return;
+          }
+        } catch {
+          toast({ title: 'Document still processing', description: 'Please wait until all documents are ready.', variant: 'destructive' });
           return;
         }
-      } catch {
-        toast({ title: 'PDF is still being processed', description: 'Please wait until processing is complete.', variant: 'destructive' });
-        return;
       }
     }
 
@@ -98,7 +101,7 @@ const ChatPage = () => {
     setLoading(true);
 
     try {
-      const response = await sendMessage(primaryDocId, content, activeSession.backendSessionId || null);
+      const response = await sendMessage(allDocIds, content, activeSession.backendSessionId || null);
       setBackendSessionId(activeSessionId, response.session_id);
 
       const assistantMsg: ChatMessage = {
@@ -114,7 +117,13 @@ const ChatPage = () => {
       if (response.citations?.length) {
         setActiveCitations(response.citations);
         const primary = response.citations.find((c) => c.is_primary);
-        if (primary) setActivePdfPage(primary.page_number);
+        if (primary) {
+          // Navigate to the source PDF of the primary citation
+          if (primary.source_pdf_id && primary.source_pdf_id !== activePDFViewerId) {
+            setActivePDFViewer(primary.source_pdf_id);
+          }
+          setActivePdfPage(primary.page_number);
+        }
       }
     } catch (err: any) {
       if (err.message === 'PDF_NOT_READY') {
@@ -212,20 +221,28 @@ const ChatPage = () => {
                 )}
                 {msg.role === 'assistant' && msg.citations && msg.citations.length > 0 && (
                   <div className="ml-10 mt-2 flex flex-wrap gap-1.5">
-                    {msg.citations.map((c) => (
-                      <button
-                        key={c.id}
-                        onClick={() => {
-                          setActiveCitations(msg.citations!);
-                          setActivePdfPage(c.page_number);
-                          setPdfOpen(true);
-                        }}
-                        className="text-xs font-body px-2 py-1 rounded border border-border/30 text-muted-foreground hover:text-foreground hover:bg-surface transition-all"
-                        title={c.cited_text}
-                      >
-                        📄 Page {c.page_number}
-                      </button>
-                    ))}
+                    {msg.citations.map((c) => {
+                      const sourcePdfDoc = documents.find((d) => d.id === c.source_pdf_id);
+                      const multiDoc = activeSession?.documentIds && activeSession.documentIds.length > 1;
+                      return (
+                        <button
+                          key={c.id}
+                          onClick={() => {
+                            setActiveCitations(msg.citations!);
+                            // Switch to the correct PDF viewer for this citation
+                            if (c.source_pdf_id && c.source_pdf_id !== activePDFViewerId) {
+                              setActivePDFViewer(c.source_pdf_id);
+                            }
+                            setActivePdfPage(c.page_number);
+                            setPdfOpen(true);
+                          }}
+                          className="text-xs font-body px-2 py-1 rounded border border-border/30 text-muted-foreground hover:text-foreground hover:bg-surface transition-all"
+                          title={c.cited_text}
+                        >
+                          📄 {multiDoc && sourcePdfDoc ? `${sourcePdfDoc.name.split('.')[0]} · ` : ''}Page {c.page_number}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
