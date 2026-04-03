@@ -3,9 +3,29 @@ import { FileText } from 'lucide-react';
 
 const Footer = () => {
   const linkGroups = [
-    { title: 'Product', links: ['Features', 'Pricing', 'API'] },
-    { title: 'Company', links: ['About', 'Blog', 'Careers'] },
-    { title: 'Legal', links: ['Privacy', 'Terms'] },
+    {
+      title: 'Product',
+      links: [
+        { label: 'Features', to: '/features' },
+        { label: 'Pricing', to: '/pricing' },
+        { label: 'API', to: '/api' },
+      ],
+    },
+    {
+      title: 'Company',
+      links: [
+        { label: 'About', to: '/about' },
+        { label: 'Blog', to: '/blog' },
+        { label: 'Careers', to: '/careers' },
+      ],
+    },
+    {
+      title: 'Legal',
+      links: [
+        { label: 'Privacy', to: '/privacy' },
+        { label: 'Terms', to: '/terms' },
+      ],
+    },
   ];
 
   return (
@@ -24,10 +44,13 @@ const Footer = () => {
               <h4 className="text-sm font-body font-semibold text-foreground mb-4">{g.title}</h4>
               <ul className="space-y-2">
                 {g.links.map((l) => (
-                  <li key={l}>
-                    <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-body">
-                      {l}
-                    </a>
+                  <li key={l.label}>
+                    <Link
+                      to={l.to}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors font-body"
+                    >
+                      {l.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
