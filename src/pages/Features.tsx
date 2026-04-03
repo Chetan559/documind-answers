@@ -31,7 +31,7 @@ const sections = [
     label: 'MULTI-DOC',
     title: 'Multi-Document Intelligence',
     paragraphs: [
-      'Upload an entire library of PDFs and query across all of them simultaneously. DocuMind's multi-document engine synthesizes information from multiple sources, identifying connections and contradictions you might miss.',
+      "Upload an entire library of PDFs and query across all of them simultaneously. DocuMind's multi-document engine synthesizes information from multiple sources, identifying connections and contradictions you might miss.",
       'Organize your documents into folders for different projects, courses, or cases. When you chat with a folder, the AI searches every document inside it and weaves together a comprehensive answer.',
     ],
     bullets: [
