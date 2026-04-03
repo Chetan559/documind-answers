@@ -15,9 +15,17 @@ export interface QuizQuestion {
 export interface Quiz {
   id: string;
   pdf_id: string;
+  pdf_ids: string[];
   status: string;
   question_count: number;
   questions: QuizQuestion[];
+  title: string | null;
+  chat_session_id: string | null;
+  has_result: boolean;
+  score: number | null;
+  total: number | null;
+  percentage: number | null;
+  grade: string | null;
   created_at: string;
 }
 
@@ -73,10 +81,15 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 /** POST /api/quiz/{pdf_id}/generate */
 export const generateQuiz = async (
-  pdfId: string,
+  primaryPdfId: string,
   config: GenerateConfig,
+  opts?: {
+    pdf_ids?: string[];
+    chat_session_id?: string | null;
+    title?: string | null;
+  },
 ): Promise<Quiz> => {
-  const res = await authFetch(apiUrl(`/api/quiz/${pdfId}/generate`), {
+  const res = await authFetch(apiUrl(`/api/quiz/${primaryPdfId}/generate`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -84,9 +97,31 @@ export const generateQuiz = async (
       question_type: config.question_type,
       difficulty: config.difficulty,
       topic: config.topic ?? null,
+      pdf_ids: opts?.pdf_ids ?? [],
+      chat_session_id: opts?.chat_session_id ?? null,
+      title: opts?.title ?? null,
     }),
   });
   return handleResponse<Quiz>(res);
+};
+
+/** POST /api/quiz/{quiz_id}/retake — clone with same questions */
+export const retakeQuizSame = async (
+  quizId: string,
+  opts?: { chat_session_id?: string | null },
+): Promise<Quiz> => {
+  const res = await authFetch(apiUrl(`/api/quiz/${quizId}/retake`), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_session_id: opts?.chat_session_id ?? null }),
+  });
+  return handleResponse<Quiz>(res);
+};
+
+/** GET /api/quiz/chat-session/{chat_session_id}/cards */
+export const listQuizCardsForSession = async (chatSessionId: string): Promise<Quiz[]> => {
+  const res = await authFetch(apiUrl(`/api/quiz/chat-session/${chatSessionId}/cards`));
+  return handleResponse<Quiz[]>(res);
 };
 
 /** GET /api/quiz/{pdf_id}/list */

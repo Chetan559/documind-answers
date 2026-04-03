@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from app.models.chat import ChatSession
 
 
@@ -8,6 +9,67 @@ class SessionRepo:
     async def get_by_id(self, db: AsyncSession, session_id: str) -> ChatSession | None:
         result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
         return result.scalar_one_or_none()
+
+    async def get_user_sessions_metadata(self, db: AsyncSession, user_id: str) -> list[dict]:
+        from sqlalchemy import func
+        from app.models.chat import ChatMessage
+        
+        # Correlated subqueries
+        first_msg_sq = (
+            select(func.left(ChatMessage.content, 40))
+            .where(ChatMessage.session_id == ChatSession.id)
+            .where(ChatMessage.role == 'user')
+            .order_by(ChatMessage.created_at.asc())
+            .limit(1)
+            .correlate(ChatSession)
+            .scalar_subquery()
+        )
+
+        last_msg_sq = (
+            select(func.left(ChatMessage.content, 80))
+            .where(ChatMessage.session_id == ChatSession.id)
+            .order_by(ChatMessage.created_at.desc())
+            .limit(1)
+            .correlate(ChatSession)
+            .scalar_subquery()
+        )
+
+        count_sq = (
+            select(func.count(ChatMessage.id))
+            .where(ChatMessage.session_id == ChatSession.id)
+            .correlate(ChatSession)
+            .scalar_subquery()
+        )
+
+        result = await db.execute(
+            select(
+                ChatSession.id,
+                ChatSession.pdf_id,
+                ChatSession.extra_pdf_ids,
+                ChatSession.created_at,
+                ChatSession.updated_at,
+                first_msg_sq.label("title"),
+                last_msg_sq.label("preview_text"),
+                count_sq.label("message_count")
+            )
+            .where(ChatSession.user_id == user_id)
+            .order_by(ChatSession.updated_at.desc())
+        )
+        
+        rows = result.all()
+        output = []
+        for row in rows:
+            output.append({
+                "id": row.id,
+                "pdf_id": row.pdf_id,
+                "extra_pdf_ids": row.extra_pdf_ids or [],
+                "created_at": row.created_at,
+                "updated_at": row.updated_at,
+                "title": row.title or "Chat",
+                "preview_text": row.preview_text or "No messages yet",
+                "message_count": row.message_count or 0
+            })
+        return output
 
     async def get_or_create(
         self,

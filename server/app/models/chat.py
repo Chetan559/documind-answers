@@ -1,7 +1,7 @@
 import uuid
 import json
 from datetime import datetime
-from sqlalchemy import String, Text, ForeignKey
+from sqlalchemy import String, Text, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import DateTime, TypeDecorator, TEXT
 from app.core.database import Base
@@ -53,14 +53,22 @@ class ChatSession(Base):
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
+    __table_args__ = (
+        Index("ix_chat_messages_session_created", "session_id", "created_at"),
+    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     session_id: Mapped[str] = mapped_column(String, ForeignKey("chat_sessions.id", ondelete="CASCADE"), nullable=False)
     role: Mapped[str] = mapped_column(String(20), nullable=False)
-    content: Mapped[str] = mapped_column(Text, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False, default="")
     mode: Mapped[str | None] = mapped_column(String(20))
     follow_up: Mapped[str | None] = mapped_column(Text)
+    # "chat" (default) or "quiz" (card message)
+    message_type: Mapped[str] = mapped_column(String(20), nullable=False, default="chat")
+    # FK to quiz_sessions — only set when message_type == "quiz"
+    quiz_session_id: Mapped[str | None] = mapped_column(String, ForeignKey("quiz_sessions.id", ondelete="CASCADE"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     session: Mapped["ChatSession"] = relationship("ChatSession", back_populates="messages")
     citations: Mapped[list["Citation"]] = relationship("Citation", back_populates="message", cascade="all, delete-orphan")
+    quiz_session: Mapped["QuizSession | None"] = relationship("QuizSession", back_populates="chat_messages", foreign_keys=[quiz_session_id])

@@ -78,11 +78,19 @@ class GradingService:
         """
         String-match fallback when LLM evaluation fails.
         Returns per_q_results in the same shape as LLM output.
+        Note: MCQ user answers are already normalized before this is called,
+        so comparison is between the letter labels only.
         """
         results = []
         for qa in qa_pairs:
             user = (qa.get("user_answer") or "").strip().lower()
             correct = (qa.get("correct_answer") or "").strip().lower()
+            # For MCQ: normalize user answer to first character (letter) if it looks like 'a. ...'
+            if qa.get("question_type") == "mcq":
+                if user and len(user) > 1 and user[1] in (".", " "):
+                    user = user[0]
+                if correct and len(correct) > 1 and correct[1] in (".", " "):
+                    correct = correct[0]
             results.append({
                 "question_id": qa["question_id"],
                 "is_correct": user == correct,

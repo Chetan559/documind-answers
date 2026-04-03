@@ -65,7 +65,7 @@ export function SessionHistoryModal({ session, onClose }: Props) {
                 {session.title}
               </h3>
               <p className="text-[10px] font-body text-muted-foreground mt-1">
-                {session.messages.length} messages · {sessionDocs.length}{' '}
+                {session.messageCount ?? session.messages.length} messages · {sessionDocs.length}{' '}
                 document{sessionDocs.length !== 1 ? 's' : ''} ·{' '}
                 {new Date(session.updatedAt).toLocaleDateString('en-US', {
                   month: 'short',
@@ -117,10 +117,13 @@ export function SessionHistoryModal({ session, onClose }: Props) {
               Conversation preview
             </p>
             {session.messages.length === 0 ? (
-              <div className="flex items-center gap-2 py-4 justify-center">
+              <div className="flex flex-col items-center gap-2 py-4 justify-center">
                 <MessageSquare className="w-4 h-4 text-muted-foreground/50" />
-                <p className="text-xs font-body text-muted-foreground">
-                  No messages yet
+                <p className="text-xs font-body text-muted-foreground text-center">
+                  {(session.messageCount ?? session.messages.length) > 0 
+                     ? `Open chat to view ${(session.messageCount ?? session.messages.length)} message${(session.messageCount ?? session.messages.length) > 1 ? 's' : ''}`
+                     : 'No messages yet'
+                  }
                 </p>
               </div>
             ) : (

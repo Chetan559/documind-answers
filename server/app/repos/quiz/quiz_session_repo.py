@@ -17,8 +17,11 @@ class QuizSessionRepo:
         result = await db.execute(
             select(QuizSession)
             .where(QuizSession.id == session_id)
-            # FIX: Added selectinload(QuizSession.pdf) so the recommendation service can access it
-            .options(selectinload(QuizSession.questions), selectinload(QuizSession.pdf))
+            .options(
+                selectinload(QuizSession.questions),
+                selectinload(QuizSession.pdf),
+                selectinload(QuizSession.result),
+            )
         )
         return result.scalar_one_or_none()
 
@@ -26,6 +29,16 @@ class QuizSessionRepo:
         result = await db.execute(
             select(QuizSession)
             .where(QuizSession.pdf_id == pdf_id)
+            .order_by(QuizSession.created_at.desc())
+        )
+        return list(result.scalars().all())
+
+    async def get_by_chat_session(self, db: AsyncSession, chat_session_id: str) -> list[QuizSession]:
+        """Return all quiz sessions linked to a chat session, newest first."""
+        result = await db.execute(
+            select(QuizSession)
+            .where(QuizSession.chat_session_id == chat_session_id)
+            .options(selectinload(QuizSession.questions), selectinload(QuizSession.result), selectinload(QuizSession.pdf))
             .order_by(QuizSession.created_at.desc())
         )
         return list(result.scalars().all())

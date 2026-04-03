@@ -15,10 +15,16 @@ class DifficultyLevel(str, Enum):
 
 
 class QuizGenerateRequest(BaseModel):
-    count:         int             = Field(default=5, ge=3, le=20)
-    question_type: QuestionType    = Field(default=QuestionType.MCQ)
-    difficulty:    DifficultyLevel = Field(default=DifficultyLevel.MEDIUM)
-    topic:         str | None      = Field(default=None)
+    count:          int             = Field(default=5, ge=3, le=20)
+    question_type:  QuestionType    = Field(default=QuestionType.MCQ)
+    difficulty:     DifficultyLevel = Field(default=DifficultyLevel.MEDIUM)
+    topic:          str | None      = Field(default=None)
+    # Multi-doc: list of PDF IDs to draw questions from (first is primary)
+    pdf_ids:        list[str]       = Field(default_factory=list)
+    # If provided, auto-post a quiz card to this chat session
+    chat_session_id: str | None     = Field(default=None)
+    # Optional title for the quiz card
+    title:          str | None      = Field(default=None)
 
 
 class QuizAppendRequest(BaseModel):
@@ -29,3 +35,8 @@ class QuizAppendRequest(BaseModel):
 
 class QuizSubmitRequest(BaseModel):
     answers: dict[str, str] = Field(description="{question_id: user_answer}")
+
+
+class RetakeQuizRequest(BaseModel):
+    """Clone an existing quiz session (same questions) and optionally link to a chat session."""
+    chat_session_id: str | None = Field(default=None)

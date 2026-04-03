@@ -1,0 +1,13 @@
+{
+  "extraPaths": [
+    "./server"
+  ],
+  "executionEnvironments": [
+    {
+      "root": "server",
+      "extraPaths": [
+        "."
+      ]
+    }
+  ]
+}

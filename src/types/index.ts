@@ -17,7 +17,27 @@ export interface ChatMessage {
   citations?: import('@/api/chat').Citation[];
   follow_up?: string | null;
   mode?: 'rag' | 'continuation' | null;
+  message_type?: 'chat' | 'quiz';
+  quiz_session_id?: string | null;
+  quiz_data?: QuizCardData | null;
 }
+
+export interface QuizCardData {
+  id: string;
+  pdf_id: string;
+  pdf_ids: string[];
+  status: string;
+  question_count: number;
+  title: string | null;
+  chat_session_id: string | null;
+  has_result: boolean;
+  score: number | null;
+  total: number | null;
+  percentage: number | null;
+  grade: string | null;
+  created_at: string;
+}
+
 
 export interface SourceCitation {
   documentId: string;
@@ -33,6 +53,7 @@ export interface ChatSession {
   updatedAt: Date;
   documentIds: string[];
   messages: ChatMessage[];
+  messageCount?: number;
   isPinned: boolean;
   previewText: string;
   backendSessionId?: string | null;

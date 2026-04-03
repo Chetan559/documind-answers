@@ -1,9 +1,29 @@
 import uuid
+import json
 from datetime import datetime
 from sqlalchemy import String, Integer, Float, Boolean, Text, ForeignKey, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.types import DateTime
+from sqlalchemy.types import DateTime, TypeDecorator, TEXT
 from app.core.database import Base
+
+
+class JSONList(TypeDecorator):
+    """Stores a Python list as a JSON string in a TEXT column."""
+    impl = TEXT
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return "[]"
+        return json.dumps(value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return []
+        try:
+            return json.loads(value)
+        except (TypeError, ValueError):
+            return []
 
 
 class QuizSession(Base):
@@ -11,9 +31,15 @@ class QuizSession(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     pdf_id: Mapped[str] = mapped_column(String, ForeignKey("pdfs.id", ondelete="CASCADE"), nullable=False)
+    # Multi-doc support: all PDF IDs (including primary) used to generate this quiz
+    pdf_ids: Mapped[str] = mapped_column(JSONList, nullable=False, default=list)
     user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="active")
     question_count: Mapped[int] = mapped_column(Integer, default=0)
+    # Optional display title for the quiz card in chat
+    title: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # If linked to a chat session, the quiz card message appears there
+    chat_session_id: Mapped[str | None] = mapped_column(String, ForeignKey("chat_sessions.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -22,6 +48,7 @@ class QuizSession(Base):
     questions: Mapped[list["QuizQuestion"]] = relationship("QuizQuestion", back_populates="session", cascade="all, delete-orphan")
     answers: Mapped[list["QuizAnswer"]] = relationship("QuizAnswer", back_populates="session", cascade="all, delete-orphan")
     result: Mapped["QuizResult | None"] = relationship("QuizResult", back_populates="session", uselist=False, cascade="all, delete-orphan")
+    chat_messages: Mapped[list["ChatMessage"]] = relationship("ChatMessage", back_populates="quiz_session", cascade="all, delete-orphan")
 
 
 class QuizQuestion(Base):
