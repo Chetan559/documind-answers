@@ -16,7 +16,7 @@ const sections = [
     title: 'PDF Chat',
     paragraphs: [
       'DocuMind uses a Retrieval-Augmented Generation (RAG) pipeline to answer your questions with precision. When you ask a question, the system searches through your document using semantic vector embeddings — not keyword matching — to find the most relevant passages.',
-      'Every answer is grounded in your document. The AI never guesses. If the information isn't in the PDF, it tells you. Every response includes the exact page number and passage it drew from, so you can verify instantly.',
+      "Every answer is grounded in your document. The AI never guesses. If the information isn't in the PDF, it tells you. Every response includes the exact page number and passage it drew from, so you can verify instantly.",
       'This approach means DocuMind works equally well on dense academic papers, scanned legal contracts, and sprawling financial reports.',
     ],
     bullets: [
