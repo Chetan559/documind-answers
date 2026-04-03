@@ -47,7 +47,7 @@ const sections = [
     title: 'Quiz Generation',
     paragraphs: [
       'Instantly generate quizzes from any document. DocuMind creates multiple-choice, true/false, and short-answer questions calibrated to your chosen difficulty level — Easy, Medium, or Hard.',
-      'Questions are delivered one at a time with immediate feedback, source citations, and detailed explanations. It's not just testing memorization — the quiz engine targets comprehension and critical thinking.',
+      "Questions are delivered one at a time with immediate feedback, source citations, and detailed explanations. It's not just testing memorization — the quiz engine targets comprehension and critical thinking.",
     ],
     bullets: [
       'Multiple choice, true/false, and short-answer formats',
