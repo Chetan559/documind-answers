@@ -16,7 +16,7 @@ def build_evaluation_prompt(qa_pairs: list[dict]) -> str:
     return f"""You are a strict but fair quiz evaluator. Evaluate the following quiz attempt.
 
 Grading rules:
-- For MCQ: user_answer must match the option label exactly (A/B/C/D) — case-insensitive.
+- For MCQ: the user_answer is normalized to just the option letter (A/B/C/D). Compare it to the correct_answer letter — case-insensitive.
 - For true_false: must match "True" or "False" — case-insensitive.
 - For fill_in_the_blank: accept minor spelling variations and synonyms, but the core meaning must match.
 - If user_answer is empty or null, mark as incorrect.

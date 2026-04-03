@@ -18,9 +18,17 @@ class QuizQuestionResponse(BaseModel):
 class QuizSessionResponse(BaseModel):
     id: str
     pdf_id: str
+    pdf_ids: list[str]
     status: str
     question_count: int
     questions: list[QuizQuestionResponse]
+    title: str | None
+    chat_session_id: str | None = None
+    has_result: bool = False
+    score: int | None = None
+    total: int | None = None
+    percentage: float | None = None
+    grade: str | None = None
     created_at: datetime
 
     class Config:

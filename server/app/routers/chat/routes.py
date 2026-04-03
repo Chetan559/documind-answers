@@ -4,12 +4,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.dependencies import get_current_user_id
 from app.schemas.chat.request import ChatRequest, MultiChatRequest
-from app.schemas.chat.response import ChatResponse, ChatHistoryResponse
+from app.schemas.chat.response import ChatResponse, ChatHistoryResponse, ChatSessionMetadataResponse
 from app.schemas.common import SuccessResponse
 from app.services.rag.rag_service import rag_service
+from app.repos.chat.session_repo import session_repo
 
 router = APIRouter(prefix="/api/chat", tags=["Chat"])
 
+@router.get("/sessions", response_model=list[ChatSessionMetadataResponse])
+async def get_user_sessions(
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get metadata for all chat sessions belonging to the current user."""
+    return await session_repo.get_user_sessions_metadata(db, user_id)
 
 @router.post("/", response_model=ChatResponse)
 async def chat_multi(

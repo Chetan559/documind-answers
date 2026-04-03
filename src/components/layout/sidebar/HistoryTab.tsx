@@ -63,8 +63,8 @@ export function HistoryTab() {
             {session.documentIds.length !== 1 ? 's' : ''}
           </span>
           <span className="text-[9px] font-body text-muted-foreground/70">
-            · {session.messages.length} msg
-            {session.messages.length !== 1 ? 's' : ''}
+            · {session.messageCount ?? session.messages.length} msg
+            {(session.messageCount ?? session.messages.length) !== 1 ? 's' : ''}
           </span>
         </div>
       </div>

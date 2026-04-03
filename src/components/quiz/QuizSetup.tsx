@@ -7,16 +7,23 @@ import {
   Minus,
   Plus,
   LayoutDashboard,
+  Check,
+  Files,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { GenerateConfig } from "@/api/quiz";
+import type { PDFDocument } from "@/types";
 
 interface Props {
   documentName?: string;
   documentId?: string;
+  /** All available docs in the current session */
+  sessionDocs?: PDFDocument[];
+  /** Pre-selected PDF IDs (for retake-new flow) */
+  preSelectedDocIds?: string[];
   config: GenerateConfig;
   onConfigChange: (config: Partial<GenerateConfig>) => void;
-  onStart: () => void;
+  onStart: (selectedPdfIds: string[]) => void;
   loading: boolean;
 }
 
@@ -34,6 +41,8 @@ const questionTypes = [
 const QuizSetup = ({
   documentName,
   documentId,
+  sessionDocs = [],
+  preSelectedDocIds,
   config,
   onConfigChange,
   onStart,
@@ -42,16 +51,54 @@ const QuizSetup = ({
   const navigate = useNavigate();
   const [topic, setTopic] = useState(config.topic || "");
 
+  // Doc selection state — default to preSelected or all
+  const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(() => {
+    if (preSelectedDocIds && preSelectedDocIds.length > 0) {
+      return new Set(preSelectedDocIds);
+    }
+    // Default: select all available docs (at minimum the primary)
+    const ids = sessionDocs.filter((d) => d.status === "ready").map((d) => d.id);
+    if (ids.length === 0 && documentId) return new Set([documentId]);
+    return new Set(ids);
+  });
+
+  // Ensure primary doc is always shown at the top-level
+  const availableDocs = sessionDocs.filter((d) => d.status === "ready");
+  const hasMultipleDocs = availableDocs.length > 1;
+
+  const toggleDoc = (docId: string) => {
+    setSelectedDocIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(docId)) {
+        // Can't deselect if it's the only one or the primary (always need >= 1)
+        if (next.size <= 1) return prev;
+        next.delete(docId);
+      } else {
+        next.add(docId);
+      }
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    setSelectedDocIds(new Set(availableDocs.map((d) => d.id)));
+  };
+
+  const allSelected = availableDocs.length > 0 && availableDocs.every((d) => selectedDocIds.has(d.id));
+
   const adjustCount = (delta: number) => {
-    // API allows min 3, max 20
     const n = Math.max(3, Math.min(20, config.count + delta));
     onConfigChange({ count: n });
   };
 
   const handleStart = () => {
     onConfigChange({ topic: topic.trim() || null });
-    // Small delay so state updates before onStart reads it
-    setTimeout(onStart, 0);
+    const ids = Array.from(selectedDocIds);
+    // Ensure primary doc is first
+    const sorted = documentId
+      ? [documentId, ...ids.filter((id) => id !== documentId)]
+      : ids;
+    setTimeout(() => onStart(sorted), 0);
   };
 
   return (
@@ -81,8 +128,8 @@ const QuizSetup = ({
         </button>
       </div>
 
-      {/* Document badge */}
-      {documentName && (
+      {/* Document badge (single doc) — only when no multi-doc selector */}
+      {documentName && !hasMultipleDocs && (
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface border border-border/30 mb-8">
           <FileText className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground font-body truncate max-w-[200px]">
@@ -107,7 +154,63 @@ const QuizSetup = ({
           </p>
         </div>
 
-        {/* Question count stepper — clamped 3–20 */}
+        {/* ── Document selector (multi-doc) ── */}
+        {hasMultipleDocs && (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-xs text-muted-foreground font-body uppercase tracking-wider flex items-center gap-1.5">
+                <Files className="w-3.5 h-3.5" />
+                Documents
+              </label>
+              <button
+                onClick={allSelected ? () => {
+                  // keep at least one selected (primary)
+                  if (documentId) setSelectedDocIds(new Set([documentId]));
+                } : selectAll}
+                className="text-xs font-body text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {allSelected ? "Deselect all" : "Select all"}
+              </button>
+            </div>
+            <div className="space-y-1.5">
+              {availableDocs.map((doc) => {
+                const isSelected = selectedDocIds.has(doc.id);
+                const isPrimary = doc.id === documentId;
+                return (
+                  <button
+                    key={doc.id}
+                    onClick={() => toggleDoc(doc.id)}
+                    disabled={isPrimary && selectedDocIds.size === 1}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm transition-all font-body text-left ${
+                      isSelected
+                        ? "border-primary/40 bg-primary/5 text-foreground"
+                        : "border-border/30 text-muted-foreground hover:text-foreground hover:border-foreground/50"
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    aria-label={`Toggle ${doc.name}`}
+                  >
+                    <span
+                      className={`w-4 h-4 rounded border-2 shrink-0 flex items-center justify-center transition-colors ${
+                        isSelected ? "border-primary bg-primary" : "border-muted-foreground/40"
+                      }`}
+                    >
+                      {isSelected && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
+                    </span>
+                    <FileText className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                    <span className="truncate flex-1">{doc.name}</span>
+                    {isPrimary && (
+                      <span className="text-[10px] text-muted-foreground/60 shrink-0">primary</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground/60 font-body mt-2">
+              {selectedDocIds.size} of {availableDocs.length} docs selected
+            </p>
+          </div>
+        )}
+
+        {/* Question count stepper */}
         <div>
           <label className="text-xs text-muted-foreground font-body block mb-3 uppercase tracking-wider">
             Questions
@@ -168,7 +271,7 @@ const QuizSetup = ({
           </div>
         </div>
 
-        {/* Question type — single select (radio-style) */}
+        {/* Question type */}
         <div>
           <label className="text-xs text-muted-foreground font-body block mb-3 uppercase tracking-wider">
             Type
@@ -187,21 +290,16 @@ const QuizSetup = ({
                   }`}
                   aria-label={`Select ${t.label}`}
                 >
-                  {/* Radio circle indicator */}
                   <span
                     className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
                       active ? "border-primary" : "border-muted-foreground/40"
                     }`}
                   >
-                    {active && (
-                      <span className="w-2 h-2 rounded-full bg-primary" />
-                    )}
+                    {active && <span className="w-2 h-2 rounded-full bg-primary" />}
                   </span>
                   <div>
                     <span className="block">{t.label}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {t.desc}
-                    </span>
+                    <span className="text-xs text-muted-foreground">{t.desc}</span>
                   </div>
                 </button>
               );
@@ -213,9 +311,7 @@ const QuizSetup = ({
         <div>
           <label className="text-xs text-muted-foreground font-body block mb-3 uppercase tracking-wider">
             Topic{" "}
-            <span className="normal-case text-muted-foreground/60">
-              (optional)
-            </span>
+            <span className="normal-case text-muted-foreground/60">(optional)</span>
           </label>
           <input
             type="text"
@@ -230,7 +326,7 @@ const QuizSetup = ({
         {/* Start button */}
         <button
           onClick={handleStart}
-          disabled={loading}
+          disabled={loading || selectedDocIds.size === 0}
           className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl text-sm hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-[0.98] flex items-center justify-center gap-2 font-body font-medium"
           aria-label="Start Quiz"
         >

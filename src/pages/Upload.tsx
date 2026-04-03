@@ -4,13 +4,14 @@ import { motion } from 'framer-motion';
 import Sidebar from '@/components/layout/Sidebar';
 import { useAppStore } from '@/store/useAppStore';
 import { listDocuments } from '@/api/documents';
+import { getSessionsMetadata } from '@/api/chat';
 import { FileText, MessageSquare, BookOpen, Loader2 } from 'lucide-react';
 
 const UploadPage = () => {
   const navigate = useNavigate();
-  const { documents, addDocuments } = useAppStore();
+  const { documents, addDocuments, mergeSessions } = useAppStore();
 
-  // Sync documents from backend on mount
+  // Sync documents and sessions from backend on mount
   useEffect(() => {
     listDocuments()
       .then((docs) => {
@@ -25,7 +26,15 @@ const UploadPage = () => {
         addDocuments(mapped);
       })
       .catch(() => {});
-  }, [addDocuments]);
+
+    getSessionsMetadata()
+      .then((sessions) => {
+        mergeSessions(sessions);
+      })
+      .catch((err) => {
+        console.error('Failed to sync chat metadata:', err);
+      });
+  }, [addDocuments, mergeSessions]);
 
   const readyDocs = documents.filter((d) => d.status === 'ready');
   const processingDocs = documents.filter(

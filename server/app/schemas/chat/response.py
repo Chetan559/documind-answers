@@ -20,7 +20,10 @@ class ChatMessageResponse(BaseModel):
     content: str
     mode: str | None                    # rag | continuation
     follow_up: str | None
-    citations: list[CitationResponse]
+    citations: list[CitationResponse] | None = None
+    message_type: str | None = "chat"
+    quiz_session_id: str | None = None
+    quiz_data: dict | None = None
     created_at: datetime
 
     class Config:
@@ -40,3 +43,16 @@ class ChatHistoryResponse(BaseModel):
     session_id: str
     pdf_id: str
     messages: list[ChatMessageResponse]
+
+class ChatSessionMetadataResponse(BaseModel):
+    id: str
+    pdf_id: str
+    extra_pdf_ids: list[str]
+    created_at: datetime
+    updated_at: datetime
+    title: str = "Chat"
+    preview_text: str = "No messages yet"
+    message_count: int = 0
+
+    class Config:
+        from_attributes = True

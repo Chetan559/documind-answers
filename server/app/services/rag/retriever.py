@@ -69,8 +69,9 @@ class Retriever:
         top_k: int,
     ) -> list[dict]:
         """Keyword fallback across multiple PDFs."""
-        tasks = [self._keyword_search(db, pdf_id, query, top_k) for pdf_id in pdf_ids]
-        results_per_pdf = await asyncio.gather(*tasks)
+        results_per_pdf = []
+        for pdf_id in pdf_ids:
+            results_per_pdf.append(await self._keyword_search(db, pdf_id, query, top_k))
         merged = []
         for results in results_per_pdf:
             merged.extend(results)

@@ -13,19 +13,39 @@ class MessageRepo:
         await db.refresh(msg)
         return msg
 
+    async def create_quiz_card(
+        self,
+        db: AsyncSession,
+        session_id: str,
+        quiz_session_id: str,
+    ) -> ChatMessage:
+        """Create a quiz-type chat message (card) linked to a quiz session."""
+        return await self.create(db, {
+            "session_id": session_id,
+            "role": "assistant",
+            "content": "",
+            "message_type": "quiz",
+            "quiz_session_id": quiz_session_id,
+        })
+
     async def get_session_messages(
         self,
         db: AsyncSession,
         session_id: str,
     ) -> list[ChatMessage]:
-        """Get all messages with citations eagerly loaded."""
+        """Get all messages with citations and quiz_session (+ result) eagerly loaded."""
+        from app.models.quiz import QuizSession, QuizResult
         result = await db.execute(
             select(ChatMessage)
             .where(ChatMessage.session_id == session_id)
-            .options(selectinload(ChatMessage.citations))
+            .options(
+                selectinload(ChatMessage.citations),
+                selectinload(ChatMessage.quiz_session).selectinload(QuizSession.result),
+            )
             .order_by(ChatMessage.created_at.asc())
         )
         return list(result.scalars().all())
+
 
     async def get_history_for_llm(
         self,
@@ -34,12 +54,13 @@ class MessageRepo:
         limit: int = 20,
     ) -> list[dict]:
         """
-        Returns last N messages formatted for LLM context.
-        [{"role": "user"|"assistant", "content": "..."}]
+        Returns last N NON-quiz messages formatted for LLM context.
+        [{\"role\": \"user\"|\"assistant\", \"content\": \"...\"}]
         """
         result = await db.execute(
             select(ChatMessage)
             .where(ChatMessage.session_id == session_id)
+            .where(ChatMessage.message_type == "chat")
             .order_by(ChatMessage.created_at.desc())
             .limit(limit)
         )

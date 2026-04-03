@@ -7,6 +7,7 @@ from app.services.quiz.recommendation_service import recommendation_service
 from app.repos.quiz.quiz_question_repo import quiz_question_repo
 from app.repos.quiz.quiz_answer_repo import quiz_answer_repo
 from app.repos.quiz.quiz_session_repo import quiz_session_repo
+from app.repos.chat.message_repo import message_repo
 from app.core.exceptions import QuizNotFoundError
 from app.utils.constants import QuizStatus
 from sqlalchemy import select
@@ -16,7 +17,7 @@ from app.models.quiz import QuizResult
 class QuizService:
     """
     Top-level orchestrator — delegates to:
-    - session_service   → create / append / get / list / delete
+    - session_service   → create / clone / append / get / list / delete
     - evaluation_service → LLM grading + score computation
     - recommendation_service → weak topics + study advice
     """
@@ -25,20 +26,51 @@ class QuizService:
         self,
         db: AsyncSession,
         pdf_id: str,
+        pdf_ids: list[str],
         user_id: str,
         count: int,
         question_type: str,
         difficulty: str,
         topic: str | None,
+        title: str | None = None,
+        chat_session_id: str | None = None,
     ) -> dict:
-        return await session_service.create(
+        quiz = await session_service.create(
             db=db,
             pdf_id=pdf_id,
+            pdf_ids=pdf_ids,
             user_id=user_id,
             count=count,
             question_type=question_type,
             difficulty=difficulty,
             topic=topic,
+            title=title,
+            chat_session_id=chat_session_id,
+        )
+
+        # Auto-post quiz card to chat session if requested
+        if chat_session_id:
+            try:
+                await message_repo.create_quiz_card(db, chat_session_id, quiz["id"])
+                await db.commit()
+            except Exception as e:
+                logger.warning(f"Failed to create quiz card in chat session {chat_session_id}: {e}")
+
+        return quiz
+
+    async def retake_quiz(
+        self,
+        db: AsyncSession,
+        quiz_id: str,
+        user_id: str,
+        chat_session_id: str | None = None,
+    ) -> dict:
+        """Clone an existing quiz session (same questions, new attempt)."""
+        return await session_service.clone(
+            db=db,
+            quiz_id=quiz_id,
+            user_id=user_id,
+            chat_session_id=chat_session_id,
         )
 
     async def append_questions(
@@ -63,6 +95,14 @@ class QuizService:
         quiz_id: str,
         answers: dict[str, str],
     ) -> dict:
+        # Check if result already exists — don't re-generate
+        existing = await db.execute(
+            select(QuizResult).where(QuizResult.session_id == quiz_id)
+        )
+        if existing.scalar_one_or_none():
+            logger.info(f"Quiz {quiz_id} already evaluated — returning saved result")
+            return await self.get_result(db, quiz_id)
+
         # 1. Evaluate + grade
         result = await evaluation_service.evaluate(db, quiz_id, answers)
 
@@ -97,6 +137,9 @@ class QuizService:
 
     async def list_by_pdf(self, db: AsyncSession, pdf_id: str) -> list[dict]:
         return await session_service.list_by_pdf(db, pdf_id)
+
+    async def list_by_chat_session(self, db: AsyncSession, chat_session_id: str) -> list[dict]:
+        return await session_service.list_by_chat_session(db, chat_session_id)
 
     async def get_result(self, db: AsyncSession, quiz_id: str) -> dict:
         result = await db.execute(

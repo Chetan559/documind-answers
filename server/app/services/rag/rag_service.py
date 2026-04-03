@@ -153,17 +153,43 @@ class RAGService:
                 }
                 for c in msg.citations
             ]
+
+            # Build quiz session data if this is a quiz card message
+            quiz_data = None
+            if msg.message_type == "quiz" and msg.quiz_session:
+                qs = msg.quiz_session
+                result = qs.result
+                quiz_data = {
+                    "id": qs.id,
+                    "pdf_id": qs.pdf_id,
+                    "pdf_ids": qs.pdf_ids or [qs.pdf_id],
+                    "status": qs.status,
+                    "question_count": qs.question_count,
+                    "title": qs.title,
+                    "chat_session_id": qs.chat_session_id,
+                    "has_result": result is not None,
+                    "score": result.score if result else None,
+                    "total": result.total if result else None,
+                    "percentage": result.percentage if result else None,
+                    "grade": result.grade if result else None,
+                    "created_at": qs.created_at.isoformat(),
+                }
+
             formatted.append({
                 "id": msg.id,
                 "role": msg.role,
                 "content": msg.content,
                 "mode": msg.mode,
                 "follow_up": msg.follow_up,
+                "message_type": msg.message_type,
+                "quiz_session_id": msg.quiz_session_id,
+                "quiz_data": quiz_data,
                 "citations": citations,
                 "created_at": msg.created_at,
             })
 
         return {"session_id": session_id, "pdf_id": pdf_id, "messages": formatted}
+
 
     async def clear_history(self, db: AsyncSession, session_id: str):
         await message_repo.delete_by_session(db, session_id)

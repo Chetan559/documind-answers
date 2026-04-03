@@ -1,4 +1,5 @@
 import { authFetch, apiUrl } from '@/lib/authFetch';
+import { z } from 'zod';
 
 export interface Citation {
   id: string;
@@ -68,4 +69,23 @@ export const clearChatHistory = async (pdfId: string, sessionId: string) => {
   });
   if (!res.ok) throw new Error(`Clear failed: ${res.status}`);
   return res.json();
+};
+
+export const SessionMetadataSchema = z.object({
+  id: z.string(),
+  pdf_id: z.string(),
+  extra_pdf_ids: z.array(z.string()),
+  created_at: z.string(),
+  updated_at: z.string(),
+  title: z.string(),
+  preview_text: z.string(),
+  message_count: z.number(),
+});
+export type SessionMetadata = z.infer<typeof SessionMetadataSchema>;
+
+export const getSessionsMetadata = async (): Promise<SessionMetadata[]> => {
+  const res = await authFetch(apiUrl('/api/chat/sessions'));
+  if (!res.ok) throw new Error(`Failed to fetch sessions: ${res.status}`);
+  const json = await res.json();
+  return z.array(SessionMetadataSchema).parse(json);
 };

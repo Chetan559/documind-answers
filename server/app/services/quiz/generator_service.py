@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re
 from loguru import logger
@@ -18,13 +19,13 @@ def _clean_json(text: str) -> str:
 class GeneratorService:
     """
     Responsible for generating quiz questions from PDF chunks via LLM.
-    Called by quiz_service during generate and append flows.
+    Supports multi-doc: chunks from all PDF IDs are merged before prompting.
     """
 
     async def generate_questions(
         self,
         db: AsyncSession,
-        pdf_id: str,
+        pdf_ids: list[str],
         session_id: str,
         count: int,
         question_type: str,
@@ -35,15 +36,23 @@ class GeneratorService:
     ) -> list:
         exclude_questions = exclude_questions or []
 
-        # Pull chunks from Qdrant
-        chunks = await vector_repo.get_all(pdf_id, limit=40)
-        if not chunks:
-            logger.warning(f"No chunks found for PDF {pdf_id} — cannot generate questions")
+        # Pull chunks from ALL PDFs concurrently (same pattern as RAG retriever)
+        tasks = [vector_repo.get_all(pdf_id, limit=40) for pdf_id in pdf_ids]
+        results_per_pdf = await asyncio.gather(*tasks)
+
+        # Merge chunks from all PDFs into a single context
+        all_chunks: list[dict] = []
+        for pdf_id, chunks in zip(pdf_ids, results_per_pdf):
+            for chunk in chunks:
+                all_chunks.append({**chunk, "source_pdf_id": pdf_id})
+
+        if not all_chunks:
+            logger.warning(f"No chunks found for PDF IDs {pdf_ids} — cannot generate questions")
             return []
 
         context = "\n\n".join([
             f"[Page {c['page_number']}] {c['text']}"
-            for c in chunks
+            for c in all_chunks
         ])
 
         prompt = build_quiz_prompt(
@@ -55,7 +64,7 @@ class GeneratorService:
             exclude_questions=exclude_questions,
         )
 
-        logger.info(f"Generating {count} {question_type} ({difficulty}) questions for PDF {pdf_id}...")
+        logger.info(f"Generating {count} {question_type} ({difficulty}) questions across {len(pdf_ids)} PDF(s)...")
         raw = await llm_service.generate_groq(
             prompt,
             system="You are a quiz generator. Return only valid JSON.",

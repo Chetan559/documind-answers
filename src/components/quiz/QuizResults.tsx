@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { RotateCcw, Sparkles, AlertTriangle, Lightbulb } from "lucide-react";
+import { RotateCcw, Sparkles, AlertTriangle, Lightbulb, MessageSquare } from "lucide-react";
 import ScoreCircle from "./ScoreCircle";
 import ReviewAccordion from "./ReviewAccordion";
 import type { QuizSubmitResult } from "@/api/quiz";
@@ -7,9 +7,10 @@ import type { QuizSubmitResult } from "@/api/quiz";
 interface Props {
   result: QuizSubmitResult;
   onNewQuiz: () => void;
+  onExit: () => void;
 }
 
-const QuizResults = ({ result, onNewQuiz }: Props) => {
+const QuizResults = ({ result, onNewQuiz, onExit }: Props) => {
   const {
     score,
     total,
@@ -126,6 +127,14 @@ const QuizResults = ({ result, onNewQuiz }: Props) => {
             aria-label="New Quiz"
           >
             <Sparkles className="w-4 h-4" /> New Quiz
+          </button>
+          
+          <button
+            onClick={onExit}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-secondary text-secondary-foreground text-sm font-body font-medium hover:bg-secondary/80 transition-all active:scale-[0.98]"
+            aria-label="Back to Chat"
+          >
+            <MessageSquare className="w-4 h-4" /> Back to Chat
           </button>
         </div>
       </div>

@@ -6,14 +6,19 @@ import {
   DocumentMetadata,
 } from '@/types';
 import type { AuthUser } from '@/api/auth';
+import type { SessionMetadata } from '@/api/chat';
 
 interface AppStore extends AppState {
+  mergeSessions: (backendSessions: SessionMetadata[]) => void;
   createSession: (documentIds: string[]) => ChatSession;
   openSession: (sessionId: string) => void;
   deleteSession: (sessionId: string) => void;
   pinSession: (sessionId: string) => void;
   renameSession: (sessionId: string, title: string) => void;
+  setSessionMessages: (sessionId: string, messages: ChatMessage[]) => void;
   addMessageToSession: (sessionId: string, message: ChatMessage) => void;
+  removeMessageFromSession: (sessionId: string, messageId: string) => void;
+  updateMessageInSession: (sessionId: string, messageId: string, updates: Partial<ChatMessage>) => void;
   setBackendSessionId: (sessionId: string, backendId: string) => void;
 
   addDocuments: (docs: PDFDocument[]) => void;
@@ -69,6 +74,41 @@ export const useAppStore = create<AppStore>()(
       user: null,
       accessToken: null,
 
+      mergeSessions: (backendSessions) => set((s) => {
+        const localMap = new Map(s.sessions.map((sess) => [sess.backendSessionId || sess.id, sess]));
+
+        backendSessions.forEach((bs) => {
+          if (!localMap.has(bs.id)) {
+            // New from backend
+            localMap.set(bs.id, {
+              id: bs.id,
+              title: bs.title,
+              createdAt: new Date(bs.created_at),
+              updatedAt: new Date(bs.updated_at),
+              documentIds: [bs.pdf_id, ...(bs.extra_pdf_ids || [])],
+              messages: [],
+              messageCount: bs.message_count,
+              isPinned: false,
+              previewText: bs.preview_text,
+              backendSessionId: bs.id,
+            });
+          } else {
+            // Merge existing
+            const existing = localMap.get(bs.id)!;
+            const newDate = new Date(bs.updated_at);
+            localMap.set(bs.id, {
+              ...existing,
+              documentIds: [bs.pdf_id, ...(bs.extra_pdf_ids || [])],
+              updatedAt: newDate.getTime() > existing.updatedAt.getTime() ? newDate : existing.updatedAt,
+            });
+          }
+        });
+
+        return {
+          sessions: Array.from(localMap.values()).sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()),
+        };
+      }),
+
       createSession: (documentIds) => {
         const session: ChatSession = {
           id: crypto.randomUUID(),
@@ -110,6 +150,13 @@ export const useAppStore = create<AppStore>()(
           ),
         })),
 
+      setSessionMessages: (sessionId, messages) =>
+        set((s) => ({
+          sessions: s.sessions.map((sess) =>
+            sess.id === sessionId ? { ...sess, messages } : sess
+          ),
+        })),
+
       addMessageToSession: (sessionId, message) =>
         set((s) => ({
           sessions: s.sessions.map((sess) =>
@@ -132,6 +179,29 @@ export const useAppStore = create<AppStore>()(
         set((s) => ({
           sessions: s.sessions.map((sess) =>
             sess.id === sessionId ? { ...sess, backendSessionId: backendId } : sess
+          ),
+        })),
+
+      removeMessageFromSession: (sessionId, messageId) =>
+        set((s) => ({
+          sessions: s.sessions.map((sess) =>
+            sess.id === sessionId
+              ? { ...sess, messages: sess.messages.filter((m) => m.id !== messageId) }
+              : sess
+          ),
+        })),
+
+      updateMessageInSession: (sessionId, messageId, updates) =>
+        set((s) => ({
+          sessions: s.sessions.map((sess) =>
+            sess.id === sessionId
+              ? {
+                  ...sess,
+                  messages: sess.messages.map((m) =>
+                    m.id === messageId ? { ...m, ...updates } : m
+                  ),
+                }
+              : sess
           ),
         })),
 
