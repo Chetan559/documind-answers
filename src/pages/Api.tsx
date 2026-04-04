@@ -113,7 +113,7 @@ const Api = () => (
     </section>
 
     {/* SDKs */}
-    <section className="py-20 bg-[hsl(0,0%,5.5%)]">
+    <section className="py-20 bg-surface">
       <div className="max-w-3xl mx-auto px-6">
         <motion.span {...fade()} className="block text-[9px] text-muted-foreground uppercase tracking-widest mb-6">— SDKS —</motion.span>
         <motion.h2 {...fade(0.05)} className="font-display text-2xl text-foreground mb-8">SDKs & Libraries</motion.h2>
@@ -122,7 +122,7 @@ const Api = () => (
             <motion.div key={s.lang} {...fade(i * 0.1)} className="bg-card border border-border/10 rounded-2xl p-5">
               <h3 className="text-sm text-foreground font-body font-semibold mb-2">{s.lang}</h3>
               <p className="text-xs text-muted-foreground font-body mb-3">{s.desc}</p>
-              <div className="bg-[hsl(0,0%,5.5%)] rounded-lg p-2 font-mono text-[11px] text-foreground overflow-x-auto">{s.install}</div>
+              <div className="bg-muted rounded-lg p-2 font-mono text-[11px] text-foreground overflow-x-auto">{s.install}</div>
             </motion.div>
           ))}
         </div>
