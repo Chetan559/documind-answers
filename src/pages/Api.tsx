@@ -96,7 +96,7 @@ const Api = () => (
             </thead>
             <tbody>
               {endpoints.map((e, i) => (
-                <tr key={i} className={`border-b border-border/10 ${i % 2 === 1 ? 'bg-[hsl(0,0%,5.5%)]' : ''}`}>
+                <tr key={i} className={`border-b border-border/10 ${i % 2 === 1 ? 'bg-surface' : ''}`}>
                   <td className="py-3 px-4">
                     <span className="inline-block px-2 py-0.5 rounded text-[10px] font-mono font-semibold" style={{ color: e.color, border: `1px solid ${e.color}40` }}>
                       {e.method}
