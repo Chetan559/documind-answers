@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { GOOGLE_CLIENT_ID } from "@/config";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import ScrollToTop from "@/components/ScrollToTop";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Upload from "./pages/Upload";
