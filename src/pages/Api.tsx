@@ -146,7 +146,7 @@ const Api = () => (
             </thead>
             <tbody>
               {rateLimits.map((r, i) => (
-                <tr key={r.tier} className={`border-b border-border/10 ${i % 2 === 1 ? 'bg-[hsl(0,0%,5.5%)]' : ''}`}>
+                <tr key={r.tier} className={`border-b border-border/10 ${i % 2 === 1 ? 'bg-surface' : ''}`}>
                   <td className="py-3 px-4 text-sm text-foreground font-body font-semibold">{r.tier}</td>
                   <td className="py-3 px-4 text-sm text-foreground font-body text-center">{r.rpm}</td>
                   <td className="py-3 px-4 text-sm text-foreground font-body text-center">{r.docsDay}</td>
