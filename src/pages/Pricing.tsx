@@ -140,7 +140,7 @@ const Pricing = () => {
               </thead>
               <tbody>
                 {featureRows.map((f, i) => (
-                  <tr key={f.key} className={`border-b border-border/10 ${i % 2 === 1 ? 'bg-[hsl(0,0%,5.5%)]' : ''}`}>
+                  <tr key={f.key} className={`border-b border-border/10 ${i % 2 === 1 ? 'bg-surface' : ''}`}>
                     <td className="py-3 px-4 text-sm text-muted-foreground font-body">{f.label}</td>
                     {plans.map((p) => (
                       <td key={p.tier} className="py-3 px-4 text-center">{renderCell(p.details[f.key])}</td>

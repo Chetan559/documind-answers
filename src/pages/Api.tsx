@@ -65,11 +65,11 @@ const Api = () => (
     </section>
 
     {/* Base URL & Auth */}
-    <section className="pb-20 bg-[hsl(0,0%,5.5%)]">
+    <section className="pb-20 bg-surface">
       <div className="max-w-3xl mx-auto px-6 py-20">
         <motion.span {...fade()} className="block text-[9px] text-muted-foreground uppercase tracking-widest mb-6">— AUTHENTICATION —</motion.span>
         <motion.h2 {...fade(0.05)} className="font-display text-2xl text-foreground mb-6">Base URL & Auth</motion.h2>
-        <motion.div {...fade(0.1)} className="bg-[hsl(0,0%,5.5%)] border border-border/10 rounded-xl p-5 font-mono text-sm mb-4 overflow-x-auto">
+        <motion.div {...fade(0.1)} className="bg-muted border border-border/10 rounded-xl p-5 font-mono text-sm mb-4 overflow-x-auto">
           <p className="text-muted-foreground mb-2"># Base URL</p>
           <p className="text-foreground">https://api.documind.app/v1</p>
           <p className="text-muted-foreground mt-4 mb-2"># Example request</p>
@@ -96,7 +96,7 @@ const Api = () => (
             </thead>
             <tbody>
               {endpoints.map((e, i) => (
-                <tr key={i} className={`border-b border-border/10 ${i % 2 === 1 ? 'bg-[hsl(0,0%,5.5%)]' : ''}`}>
+                <tr key={i} className={`border-b border-border/10 ${i % 2 === 1 ? 'bg-surface' : ''}`}>
                   <td className="py-3 px-4">
                     <span className="inline-block px-2 py-0.5 rounded text-[10px] font-mono font-semibold" style={{ color: e.color, border: `1px solid ${e.color}40` }}>
                       {e.method}
@@ -113,7 +113,7 @@ const Api = () => (
     </section>
 
     {/* SDKs */}
-    <section className="py-20 bg-[hsl(0,0%,5.5%)]">
+    <section className="py-20 bg-surface">
       <div className="max-w-3xl mx-auto px-6">
         <motion.span {...fade()} className="block text-[9px] text-muted-foreground uppercase tracking-widest mb-6">— SDKS —</motion.span>
         <motion.h2 {...fade(0.05)} className="font-display text-2xl text-foreground mb-8">SDKs & Libraries</motion.h2>
@@ -122,7 +122,7 @@ const Api = () => (
             <motion.div key={s.lang} {...fade(i * 0.1)} className="bg-card border border-border/10 rounded-2xl p-5">
               <h3 className="text-sm text-foreground font-body font-semibold mb-2">{s.lang}</h3>
               <p className="text-xs text-muted-foreground font-body mb-3">{s.desc}</p>
-              <div className="bg-[hsl(0,0%,5.5%)] rounded-lg p-2 font-mono text-[11px] text-foreground overflow-x-auto">{s.install}</div>
+              <div className="bg-muted rounded-lg p-2 font-mono text-[11px] text-foreground overflow-x-auto">{s.install}</div>
             </motion.div>
           ))}
         </div>
@@ -146,7 +146,7 @@ const Api = () => (
             </thead>
             <tbody>
               {rateLimits.map((r, i) => (
-                <tr key={r.tier} className={`border-b border-border/10 ${i % 2 === 1 ? 'bg-[hsl(0,0%,5.5%)]' : ''}`}>
+                <tr key={r.tier} className={`border-b border-border/10 ${i % 2 === 1 ? 'bg-surface' : ''}`}>
                   <td className="py-3 px-4 text-sm text-foreground font-body font-semibold">{r.tier}</td>
                   <td className="py-3 px-4 text-sm text-foreground font-body text-center">{r.rpm}</td>
                   <td className="py-3 px-4 text-sm text-foreground font-body text-center">{r.docsDay}</td>
@@ -160,14 +160,14 @@ const Api = () => (
     </section>
 
     {/* Webhooks */}
-    <section className="py-20 bg-[hsl(0,0%,5.5%)]">
+    <section className="py-20 bg-surface">
       <div className="max-w-3xl mx-auto px-6">
         <motion.span {...fade()} className="block text-[9px] text-muted-foreground uppercase tracking-widest mb-6">— WEBHOOKS —</motion.span>
         <motion.h2 {...fade(0.05)} className="font-display text-2xl text-foreground mb-4">Webhooks</motion.h2>
         <motion.p {...fade(0.1)} className="text-sm text-muted-foreground font-body mb-6">
           Subscribe to events like <code className="text-foreground">document.ready</code>, <code className="text-foreground">document.failed</code>, and <code className="text-foreground">message.done</code>. We POST a JSON payload to your configured URL.
         </motion.p>
-        <motion.div {...fade(0.15)} className="bg-[hsl(0,0%,5.5%)] border border-border/10 rounded-xl p-5 font-mono text-sm overflow-x-auto">
+        <motion.div {...fade(0.15)} className="bg-muted border border-border/10 rounded-xl p-5 font-mono text-sm overflow-x-auto">
           <pre className="text-foreground">{`{
   "event": "document.ready",
   "document_id": "abc-123",
