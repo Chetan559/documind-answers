@@ -65,7 +65,7 @@ const Api = () => (
     </section>
 
     {/* Base URL & Auth */}
-    <section className="pb-20 bg-[hsl(0,0%,5.5%)]">
+    <section className="pb-20 bg-surface">
       <div className="max-w-3xl mx-auto px-6 py-20">
         <motion.span {...fade()} className="block text-[9px] text-muted-foreground uppercase tracking-widest mb-6">— AUTHENTICATION —</motion.span>
         <motion.h2 {...fade(0.05)} className="font-display text-2xl text-foreground mb-6">Base URL & Auth</motion.h2>
