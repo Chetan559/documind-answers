@@ -34,6 +34,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <ScrollToTop />
             <AnimatePresence mode="wait">
               <Routes>
                 <Route path="/" element={<Landing />} />
