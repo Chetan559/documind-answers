@@ -69,7 +69,7 @@ const Api = () => (
       <div className="max-w-3xl mx-auto px-6 py-20">
         <motion.span {...fade()} className="block text-[9px] text-muted-foreground uppercase tracking-widest mb-6">— AUTHENTICATION —</motion.span>
         <motion.h2 {...fade(0.05)} className="font-display text-2xl text-foreground mb-6">Base URL & Auth</motion.h2>
-        <motion.div {...fade(0.1)} className="bg-[hsl(0,0%,5.5%)] border border-border/10 rounded-xl p-5 font-mono text-sm mb-4 overflow-x-auto">
+        <motion.div {...fade(0.1)} className="bg-muted border border-border/10 rounded-xl p-5 font-mono text-sm mb-4 overflow-x-auto">
           <p className="text-muted-foreground mb-2"># Base URL</p>
           <p className="text-foreground">https://api.documind.app/v1</p>
           <p className="text-muted-foreground mt-4 mb-2"># Example request</p>
