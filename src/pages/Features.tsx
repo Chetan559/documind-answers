@@ -128,7 +128,7 @@ const Features = () => (
     {sections.map((s, i) => (
       <section
         key={s.label}
-        className={`py-20 ${i % 2 === 1 ? 'bg-[hsl(0,0%,5.5%)]' : 'bg-background'}`}
+        className={`py-20 ${i % 2 === 1 ? 'bg-surface' : 'bg-background'}`}
       >
         <div className="max-w-3xl mx-auto px-6">
           <motion.span

@@ -160,14 +160,14 @@ const Api = () => (
     </section>
 
     {/* Webhooks */}
-    <section className="py-20 bg-[hsl(0,0%,5.5%)]">
+    <section className="py-20 bg-surface">
       <div className="max-w-3xl mx-auto px-6">
         <motion.span {...fade()} className="block text-[9px] text-muted-foreground uppercase tracking-widest mb-6">— WEBHOOKS —</motion.span>
         <motion.h2 {...fade(0.05)} className="font-display text-2xl text-foreground mb-4">Webhooks</motion.h2>
         <motion.p {...fade(0.1)} className="text-sm text-muted-foreground font-body mb-6">
           Subscribe to events like <code className="text-foreground">document.ready</code>, <code className="text-foreground">document.failed</code>, and <code className="text-foreground">message.done</code>. We POST a JSON payload to your configured URL.
         </motion.p>
-        <motion.div {...fade(0.15)} className="bg-[hsl(0,0%,5.5%)] border border-border/10 rounded-xl p-5 font-mono text-sm overflow-x-auto">
+        <motion.div {...fade(0.15)} className="bg-muted border border-border/10 rounded-xl p-5 font-mono text-sm overflow-x-auto">
           <pre className="text-foreground">{`{
   "event": "document.ready",
   "document_id": "abc-123",
