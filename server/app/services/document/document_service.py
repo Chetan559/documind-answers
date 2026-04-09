@@ -12,7 +12,7 @@ from app.core.exceptions import PDFNotFoundError, FileTooLargeError, InvalidFile
 from app.repos.document.document_repo import document_repo
 from app.services.document.indexing_service import indexing_service
 from app.services.document.ingestion_service import (
-    detect_pdf_type, run_ocr, extract_chunks, get_page_count
+    detect_pdf_type, run_paddle_ocr, run_ocr_fallback, extract_chunks, get_page_count
 )
 
 settings = get_settings()
@@ -92,23 +92,47 @@ class DocumentService:
 
                 pdf_type = await asyncio.to_thread(detect_pdf_type, file_path)
 
-                processed_path = file_path
                 ocr_applied = False
 
                 if pdf_type in ("scanned", "handwritten"):
-                    await document_repo.update_status(db, pdf_id, "processing", "Running OCR...")
-                    await db.commit()
-                    processed_path = await asyncio.to_thread(run_ocr, file_path)
                     ocr_applied = True
 
-                await document_repo.update_status(db, pdf_id, "processing", "Extracting and indexing text...")
-                await db.commit()
+                    # ── Stage 1: PaddleOCR (primary) ──────────────────────────
+                    try:
+                        await document_repo.update_status(
+                            db, pdf_id, "processing", "Running PaddleOCR (en + hi)..."
+                        )
+                        await db.commit()
+                        chunks = await asyncio.to_thread(run_paddle_ocr, file_path)
 
-                chunks = await asyncio.to_thread(extract_chunks, processed_path)
+                    except Exception as paddle_err:
+                        logger.warning(
+                            f"PaddleOCR failed for PDF {pdf_id}: {paddle_err} "
+                            f"— attempting ocrmypdf fallback"
+                        )
+
+                        # ── Stage 2: ocrmypdf (fallback) ──────────────────────
+                        await document_repo.update_status(
+                            db, pdf_id, "processing",
+                            "PaddleOCR unavailable — running ocrmypdf fallback..."
+                        )
+                        await db.commit()
+
+                        # run_ocr_fallback raises if ocrmypdf is missing / times out
+                        # / produces empty output — that exception propagates to the
+                        # outer except block which marks the PDF as "failed".
+                        chunks = await asyncio.to_thread(run_ocr_fallback, file_path)
+
+                else:
+                    # Digital PDF — plain PyMuPDF text extraction, no OCR needed
+                    await document_repo.update_status(db, pdf_id, "processing", "Extracting and indexing text...")
+                    await db.commit()
+                    chunks = await asyncio.to_thread(extract_chunks, file_path)
+
                 if not chunks:
                     raise ValueError("No text could be extracted from this PDF")
 
-                total_pages = await asyncio.to_thread(get_page_count, processed_path)
+                total_pages = await asyncio.to_thread(get_page_count, file_path)
                 await indexing_service.index_chunks(db, pdf_id, chunks)
 
                 await document_repo.update_fields(db, pdf_id, {
@@ -117,7 +141,7 @@ class DocumentService:
                     "pdf_type": pdf_type,
                     "ocr_applied": ocr_applied,
                     "total_pages": total_pages,
-                    "file_path": processed_path,
+                    "file_path": file_path,
                 })
                 await db.commit()
                 logger.info(f"PDF {pdf_id} ready — {len(chunks)} chunks")

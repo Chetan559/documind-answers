@@ -1,0 +1,350 @@
+[
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'pydantic' imported but missing from the dependency definitions"
+        },
+        "module": "pydantic",
+        "location": {
+            "file": "app\\routers\\auth\\routes.py",
+            "line": 2,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'pydantic' imported but missing from the dependency definitions"
+        },
+        "module": "pydantic",
+        "location": {
+            "file": "app\\schemas\\chat\\request.py",
+            "line": 1,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'pydantic' imported but missing from the dependency definitions"
+        },
+        "module": "pydantic",
+        "location": {
+            "file": "app\\schemas\\chat\\response.py",
+            "line": 1,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'pydantic' imported but missing from the dependency definitions"
+        },
+        "module": "pydantic",
+        "location": {
+            "file": "app\\schemas\\common.py",
+            "line": 1,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'pydantic' imported but missing from the dependency definitions"
+        },
+        "module": "pydantic",
+        "location": {
+            "file": "app\\schemas\\document\\request.py",
+            "line": 1,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'pydantic' imported but missing from the dependency definitions"
+        },
+        "module": "pydantic",
+        "location": {
+            "file": "app\\schemas\\document\\response.py",
+            "line": 1,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'pydantic' imported but missing from the dependency definitions"
+        },
+        "module": "pydantic",
+        "location": {
+            "file": "app\\schemas\\quiz\\request.py",
+            "line": 1,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'pydantic' imported but missing from the dependency definitions"
+        },
+        "module": "pydantic",
+        "location": {
+            "file": "app\\schemas\\quiz\\response.py",
+            "line": 1,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'jose' imported but missing from the dependency definitions"
+        },
+        "module": "jose",
+        "location": {
+            "file": "app\\services\\auth_service.py",
+            "line": 3,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'fitz' imported but missing from the dependency definitions"
+        },
+        "module": "fitz",
+        "location": {
+            "file": "app\\services\\document\\ingestion_service.py",
+            "line": 2,
+            "column": 8
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'cv2' imported but missing from the dependency definitions"
+        },
+        "module": "cv2",
+        "location": {
+            "file": "app\\services\\document\\ingestion_service.py",
+            "line": 3,
+            "column": 8
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'numpy' imported but missing from the dependency definitions"
+        },
+        "module": "numpy",
+        "location": {
+            "file": "app\\services\\document\\ingestion_service.py",
+            "line": 4,
+            "column": 8
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'fitz' imported but missing from the dependency definitions"
+        },
+        "module": "fitz",
+        "location": {
+            "file": "app\\services\\document\\ocr_service.py",
+            "line": 17,
+            "column": 8
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'numpy' imported but missing from the dependency definitions"
+        },
+        "module": "numpy",
+        "location": {
+            "file": "app\\services\\document\\ocr_service.py",
+            "line": 18,
+            "column": 8
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'paddleocr' imported but missing from the dependency definitions"
+        },
+        "module": "paddleocr",
+        "location": {
+            "file": "app\\services\\document\\ocr_service.py",
+            "line": 54,
+            "column": 9
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'google' imported but missing from the dependency definitions"
+        },
+        "module": "google",
+        "location": {
+            "file": "app\\services\\embedding_service.py",
+            "line": 47,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'google' imported but missing from the dependency definitions"
+        },
+        "module": "google",
+        "location": {
+            "file": "app\\services\\embedding_service.py",
+            "line": 49,
+            "column": 1
+        }
+    },
+    {
+        "error": {
+            "code": "DEP001",
+            "message": "'fitz' imported but missing from the dependency definitions"
+        },
+        "module": "fitz",
+        "location": {
+            "file": "app\\services\\rag\\citation_service.py",
+            "line": 1,
+            "column": 8
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'asyncpg' defined as a dependency but not used in the codebase"
+        },
+        "module": "asyncpg",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'google-genai' defined as a dependency but not used in the codebase"
+        },
+        "module": "google-genai",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'mistralai' defined as a dependency but not used in the codebase"
+        },
+        "module": "mistralai",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'opencv-python-headless' defined as a dependency but not used in the codebase"
+        },
+        "module": "opencv-python-headless",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'opentelemetry-instrumentation-fastapi' defined as a dependency but not used in the codebase"
+        },
+        "module": "opentelemetry-instrumentation-fastapi",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'psycopg2-binary' defined as a dependency but not used in the codebase"
+        },
+        "module": "psycopg2-binary",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'pymupdf' defined as a dependency but not used in the codebase"
+        },
+        "module": "pymupdf",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'python-dotenv' defined as a dependency but not used in the codebase"
+        },
+        "module": "python-dotenv",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'python-jose' defined as a dependency but not used in the codebase"
+        },
+        "module": "python-jose",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'python-multipart' defined as a dependency but not used in the codebase"
+        },
+        "module": "python-multipart",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    },
+    {
+        "error": {
+            "code": "DEP002",
+            "message": "'requests' defined as a dependency but not used in the codebase"
+        },
+        "module": "requests",
+        "location": {
+            "file": "pyproject.toml",
+            "line": null,
+            "column": null
+        }
+    }
+]

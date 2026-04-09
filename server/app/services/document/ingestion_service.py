@@ -4,6 +4,8 @@ import cv2
 import numpy as np
 from loguru import logger
 
+from app.services.document.ocr_service import extract_chunks_paddle
+
 
 # ── Type detection ────────────────────────────────────────────────────────────
 
@@ -44,27 +46,67 @@ def _classify_image(image: np.ndarray) -> str:
     return "handwritten" if (np.var(areas) / mean) > 500 else "scanned"
 
 
-# ── OCR ───────────────────────────────────────────────────────────────────────
+# ── OCR — Primary (PaddleOCR) ─────────────────────────────────────────────────
 
-def run_ocr(file_path: str) -> str:
-    """Run ocrmypdf. Returns path to OCR'd file, falls back to original on failure."""
+def run_paddle_ocr(file_path: str) -> list[dict]:
+    """
+    Primary OCR path using PaddleOCR (English + Hindi, CPU).
+
+    Renders each PDF page to an image via PyMuPDF and runs two language engines
+    (en, hi) whose results are merged by bounding-box overlap and confidence.
+
+    Returns the same chunk format as extract_chunks():
+        [{"text": str, "page_number": int, "bbox": {"x0","y0","x1","y1"}}]
+
+    Raises on failure — caller is responsible for triggering the fallback.
+    """
+    logger.info(f"Running PaddleOCR on: {file_path}")
+    chunks = extract_chunks_paddle(file_path)
+    if not chunks:
+        raise ValueError("PaddleOCR returned zero text blocks")
+    logger.info(f"PaddleOCR produced {len(chunks)} chunks")
+    return chunks
+
+
+# ── OCR — Fallback (ocrmypdf) ─────────────────────────────────────────────────
+
+def run_ocr_fallback(file_path: str) -> list[dict]:
+    """
+    Secondary OCR fallback using ocrmypdf CLI.
+
+    Writes a searchable PDF to <name>_ocr.pdf, then runs extract_chunks() on it.
+    Returns the same chunk format as the primary path.
+    Raises ValueError if ocrmypdf is not installed, times out, or returns no text.
+    """
     output_path = file_path.replace(".pdf", "_ocr.pdf")
+    logger.info(f"Running ocrmypdf fallback: {file_path} → {output_path}")
     try:
         result = subprocess.run(
-            ["ocrmypdf", "--deskew", "--optimize", "1", "--output-type", "pdfa", "--skip-text", file_path, output_path],
-            capture_output=True, text=True, timeout=300,
+            [
+                "ocrmypdf",
+                "--deskew",
+                "--optimize", "1",
+                "--output-type", "pdfa",
+                "--skip-text",
+                file_path,
+                output_path,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=300,
         )
-        if result.returncode == 0:
-            logger.info(f"OCR complete: {output_path}")
-            return output_path
-        logger.warning(f"ocrmypdf exited {result.returncode}: {result.stderr[:200]}")
-        return file_path
+        if result.returncode != 0:
+            raise ValueError(f"ocrmypdf exited {result.returncode}: {result.stderr[:300]}")
+        logger.info(f"ocrmypdf succeeded: {output_path}")
     except subprocess.TimeoutExpired:
-        logger.error("OCR timed out after 300s")
-        return file_path
+        raise ValueError("ocrmypdf timed out after 300 s")
     except FileNotFoundError:
-        logger.error("ocrmypdf not installed")
-        return file_path
+        raise ValueError("ocrmypdf is not installed on this system")
+
+    chunks = extract_chunks(output_path)
+    if not chunks:
+        raise ValueError("ocrmypdf fallback produced a PDF with no extractable text")
+    return chunks
 
 
 # ── Text extraction ───────────────────────────────────────────────────────────

@@ -16,6 +16,17 @@ dependencies = [
     "mistralai>=1.12.4",
     "opencv-python-headless>=4.13.0.92",
     "opentelemetry-instrumentation-fastapi>=0.61b0",
+    # PaddleOCR — primary OCR engine (CPU mode, no GPU required).
+    # NOTE: On Windows with NumPy 2.x, installation has compatibility issues:
+    #   - paddleocr 2.x requires imgaug, which is broken on NumPy 2.x
+    #   - paddleocr 3.x introduced torch/transformers dependency (heavy)
+    # The code degrades gracefully: if PaddleOCR fails to import, the pipeline
+    # automatically falls back to ocrmypdf for scanned/handwritten PDFs.
+    # To install when compatible environment is available:
+    #   pip install paddlepaddle -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
+    #   pip install "paddleocr>=2.7.0"
+    # "paddleocr>=2.7.0",
+    # "paddlepaddle>=2.6.0",
     "psycopg2-binary>=2.9.11",
     "pydantic-settings>=2.13.1",
     "pymupdf>=1.27.1",

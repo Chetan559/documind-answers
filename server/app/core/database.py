@@ -6,7 +6,7 @@ settings = get_settings()
 
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=not settings.is_production,
+    echo=False,  # Use logging level (sqlalchemy.engine) to toggle SQL logs
     pool_pre_ping=True,     # reconnect on stale connections (important for Neon)
     pool_size=5,
     max_overflow=10,
