@@ -17,14 +17,12 @@ const principles = [
   { title: 'Built for depth', desc: 'Designed for people who need to understand documents deeply, not skim them.' },
 ];
 
-const team = [
-  { name: 'Alex Chen', role: 'CEO', bio: 'Previously built document infrastructure at Scale AI. Stanford CS.' },
-  { name: 'Priya Nair', role: 'Head of AI', bio: 'PhD in NLP from CMU. Former research scientist at Google DeepMind.' },
-  { name: 'Marcus Webb', role: 'Lead Engineer', bio: '10 years building search systems. Ex-Elastic, ex-Stripe.' },
-  { name: 'Aisha Kamara', role: 'Head of Design', bio: 'Design lead for developer tools at Figma. RISD graduate.' },
-];
-
-const backers = ['Sequoia Capital', 'Y Combinator', 'Abstract Ventures', 'Elad Gil'];
+const developer = {
+  name: 'Chetan Sharma',
+  role: 'Creator & Solo Developer',
+  bio: 'Full-stack Data Scientist intern at Bacancy. Built DocuMind end-to-end — from AI pipeline to frontend.',
+  portfolio: 'https://chetansharma.live',
+};
 
 const About = () => (
   <div className="min-h-screen bg-background">
@@ -93,40 +91,21 @@ const About = () => (
 
     <div className="max-w-3xl mx-auto border-t border-border/10" />
 
-    {/* Team */}
+    {/* Developer */}
     <section className="py-20">
       <div className="max-w-3xl mx-auto px-6">
-        <motion.span {...fade()} className="block text-[9px] text-muted-foreground uppercase tracking-widest mb-6">— THE TEAM —</motion.span>
-        <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
-          {team.map((t, i) => (
-            <motion.div key={t.name} {...fade(i * 0.1)} className="text-center">
-              <div className="w-16 h-16 rounded-full bg-card border border-border/10 flex items-center justify-center mx-auto mb-3">
-                <span className="text-lg text-foreground font-body font-semibold">
-                  {t.name.split(' ').map((n) => n[0]).join('')}
-                </span>
-              </div>
-              <h3 className="text-sm text-foreground font-body font-semibold">{t.name}</h3>
-              <p className="text-[10px] text-muted-foreground font-body uppercase tracking-wider mb-1">{t.role}</p>
-              <p className="text-xs text-muted-foreground font-body">{t.bio}</p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-
-    <div className="max-w-3xl mx-auto border-t border-border/10" />
-
-    {/* Backed by */}
-    <section className="py-20">
-      <div className="max-w-3xl mx-auto px-6">
-        <motion.span {...fade()} className="block text-[9px] text-muted-foreground uppercase tracking-widest mb-6 text-center">— BACKED BY —</motion.span>
-        <div className="flex flex-wrap justify-center gap-4">
-          {backers.map((b, i) => (
-            <motion.div key={b} {...fade(i * 0.1)} className="px-6 py-3 bg-card border border-border/10 rounded-xl">
-              <span className="text-xs text-muted-foreground font-body">{b}</span>
-            </motion.div>
-          ))}
-        </div>
+        <motion.span {...fade()} className="block text-[9px] text-muted-foreground uppercase tracking-widest mb-6">— THE DEVELOPER —</motion.span>
+        <motion.div {...fade(0.1)} className="flex flex-col items-center text-center">
+          <div className="w-20 h-20 rounded-full bg-card border border-border/10 flex items-center justify-center mb-4">
+            <span className="text-xl text-foreground font-body font-semibold">CS</span>
+          </div>
+          <h3 className="text-base text-foreground font-body font-semibold">{developer.name}</h3>
+          <p className="text-[10px] text-muted-foreground font-body uppercase tracking-wider mb-2">{developer.role}</p>
+          <p className="text-sm text-muted-foreground font-body max-w-xs mb-3">{developer.bio}</p>
+          <a href={developer.portfolio} target="_blank" rel="noopener noreferrer" className="text-xs text-foreground font-body underline underline-offset-4 hover:opacity-70 transition-opacity">
+            chetansharma.live
+          </a>
+        </motion.div>
       </div>
     </section>
 

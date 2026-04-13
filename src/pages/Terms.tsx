@@ -22,7 +22,7 @@ const sections = [
   { id: 'liability', title: '9. Limitation of Liability', content: 'To the maximum extent permitted by law, DocuMind shall not be liable for any indirect, incidental, special, consequential, or punitive damages. Our total liability is limited to the amount you paid to DocuMind in the 12 months preceding the claim.' },
   { id: 'termination', title: '10. Termination', content: 'DocuMind may suspend or terminate accounts that violate these terms, with or without notice. You may delete your account at any time through your account settings. Upon termination, your data will be handled according to our Privacy Policy.' },
   { id: 'governing-law', title: '11. Governing Law', content: 'These terms are governed by the laws of the State of Delaware, USA. Any disputes arising from these terms shall be resolved through binding arbitration, except that either party may seek injunctive relief in a court of competent jurisdiction.' },
-  { id: 'contact', title: '12. Contact', content: 'For questions about these Terms of Service:\n\nEmail: legal@documind.app\nMailing address: DocuMind Inc., 548 Market St, Suite 36000, San Francisco, CA 94104' },
+  { id: 'contact', title: '12. Contact', content: 'For questions about these Terms of Service:\n\nEmail: legal@documind.app\nMailing address: Ahmedabad, Gujarat, India 🇮🇳' },
 ];
 
 const Terms = () => {
