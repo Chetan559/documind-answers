@@ -17,14 +17,12 @@ const principles = [
   { title: 'Built for depth', desc: 'Designed for people who need to understand documents deeply, not skim them.' },
 ];
 
-const team = [
-  { name: 'Alex Chen', role: 'CEO', bio: 'Previously built document infrastructure at Scale AI. Stanford CS.' },
-  { name: 'Priya Nair', role: 'Head of AI', bio: 'PhD in NLP from CMU. Former research scientist at Google DeepMind.' },
-  { name: 'Marcus Webb', role: 'Lead Engineer', bio: '10 years building search systems. Ex-Elastic, ex-Stripe.' },
-  { name: 'Aisha Kamara', role: 'Head of Design', bio: 'Design lead for developer tools at Figma. RISD graduate.' },
-];
-
-const backers = ['Sequoia Capital', 'Y Combinator', 'Abstract Ventures', 'Elad Gil'];
+const developer = {
+  name: 'Chetan Sharma',
+  role: 'Creator & Solo Developer',
+  bio: 'Full-stack Data Scientist intern at Bacancy. Built DocuMind end-to-end — from AI pipeline to frontend.',
+  portfolio: 'https://chetansharma.live',
+};
 
 const About = () => (
   <div className="min-h-screen bg-background">

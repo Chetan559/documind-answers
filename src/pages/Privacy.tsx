@@ -49,7 +49,7 @@ const sections = [
   },
   {
     id: 'contact', title: '10. Contact',
-    content: `For privacy-related inquiries:\n\n**Email:** privacy@documind.app\n**Mailing address:** DocuMind Inc., 548 Market St, Suite 36000, San Francisco, CA 94104`,
+    content: `For privacy-related inquiries:\n\n**Email:** privacy@documind.app\n**Mailing address:** Ahmedabad, Gujarat, India 🇮🇳`,
   },
 ];
 
