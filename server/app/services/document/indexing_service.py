@@ -13,6 +13,7 @@ class IndexingService:
         db: AsyncSession,
         pdf_id: str,
         raw_chunks: list[dict],
+        user_id: str,
     ) -> int:
         if not raw_chunks:
             return 0
@@ -22,13 +23,13 @@ class IndexingService:
             for chunk in raw_chunks
         ]
 
-        # Store in ChromaDB
-        logger.info(f"Storing {len(chunks_with_ids)} vectors in qudrant...")
+        # Store in Vector DB
+        logger.info(f"Storing {len(chunks_with_ids)} vectors in Qdrant...")
         try:
-            await vector_repo.add(pdf_id, chunks_with_ids)
-            logger.info("qudrant storage complete")
+            await vector_repo.add(pdf_id, chunks_with_ids, user_id)
+            logger.info("Qdrant storage complete")
         except Exception as e:
-            logger.error(f"qudrant storage failed: {e}")
+            logger.error(f"Qdrant storage failed: {e}")
             raise
 
         # Store metadata in Postgres
@@ -55,8 +56,8 @@ class IndexingService:
         return len(chunks_with_ids)
 
     async def delete_index(self, pdf_id: str):
-        await vector_repo.delete_collection(pdf_id)
-        logger.info(f"Deleted ChromaDB collection for PDF {pdf_id}")
+        await vector_repo.delete_document(pdf_id)
+        logger.info(f"Deleted Qdrant vectors for PDF {pdf_id}")
 
 
 indexing_service = IndexingService()

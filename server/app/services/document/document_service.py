@@ -61,7 +61,7 @@ class DocumentService:
         # from FastAPI's event loop — GIL-holding ops in the daemon thread
         # cannot starve the main loop.
         thread = threading.Thread(
-            target=lambda: asyncio.run(self._process(pdf_id, file_path)),
+            target=lambda: asyncio.run(self._process(pdf_id, file_path, user_id)),
             daemon=True,
             name=f"pdf-worker-{pdf_id[:8]}",
         )
@@ -69,7 +69,7 @@ class DocumentService:
         logger.info(f"PDF {pdf_id} uploaded, processing thread started")
         return {"id": pdf_id, "name": file.filename, "status": "queued"}
 
-    async def _process(self, pdf_id: str, file_path: str):
+    async def _process(self, pdf_id: str, file_path: str, user_id: str):
         from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
         from app.core.config import get_settings
         
@@ -133,7 +133,7 @@ class DocumentService:
                     raise ValueError("No text could be extracted from this PDF")
 
                 total_pages = await asyncio.to_thread(get_page_count, file_path)
-                await indexing_service.index_chunks(db, pdf_id, chunks)
+                await indexing_service.index_chunks(db, pdf_id, chunks, user_id)
 
                 await document_repo.update_fields(db, pdf_id, {
                     "status": "ready",

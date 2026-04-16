@@ -26,7 +26,9 @@ class Settings(BaseSettings):
     HUGGINGFACE_API_KEY: str = ""
 
     # ── Vector Store ──────────────────────────────────────────────────────────
-    CHROMA_PERSIST_DIR: str = "./chroma_db"
+    QDRANT_URL: str = ""
+    QDRANT_API_KEY: str = ""
+    QDRANT_COLLECTION: str = "documents"
 
     # ── File Storage ──────────────────────────────────────────────────────────
     UPLOAD_DIR: str = "./uploads"

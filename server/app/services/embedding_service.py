@@ -1,102 +1,98 @@
-
-# import asyncio
-# from loguru import logger
-# from sentence_transformers import SentenceTransformer
-
-
-# # Load model once at module level
-# _model = SentenceTransformer("sentence-transformers/all-MiniLM-L12-v2")
-
-
-# class EmbeddingService:
-
-#     def embed_documents_sync(self, texts: list[str]) -> list[list[float]]:
-#         """Called from dedicated pipeline thread — sync is safe here."""
-#         logger.info(f"Embedding {len(texts)} chunks via all-MiniLM-L12-v2...")
-#         embeddings = _model.encode(
-#             texts,
-#             batch_size=32,
-#             show_progress_bar=False,
-#             normalize_embeddings=True,
-#         ).tolist()
-#         logger.info(f"Embedding complete: {len(embeddings)} chunks")
-#         return embeddings
-
-#     def embed_query_sync(self, text: str) -> list[float]:
-#         embedding = _model.encode(
-#             [text],
-#             normalize_embeddings=True,
-#         )
-#         return embedding[0].tolist()
-
-#     async def embed_documents(self, texts: list[str]) -> list[list[float]]:
-#         return await asyncio.to_thread(self.embed_documents_sync, texts)
-
-#     async def embed_query(self, text: str) -> list[float]:
-#         return await asyncio.get_event_loop().run_in_executor(
-#             None, self.embed_query_sync, text
-#         )
-
-
-# embedding_service = EmbeddingService()
-
-
-
-
 import asyncio
+import time
+import random
+from typing import List
+
 from google import genai
-from langchain_core.embeddings import Embeddings
 from google.genai import types
 from loguru import logger
+
 from app.core.config import get_settings
 
 settings = get_settings()
 
-# Sync client — runs inside dedicated pipeline thread, no event loop issues
+# Sync client
 _client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 
 class EmbeddingService:
+    def __init__(self):
+        self.BATCH_SIZE = 25          # tune: 20–50 ideal
+        self.RATE_DELAY = 0.7         # ~85 RPM safe margin
+        self.MAX_RETRIES = 5
 
-    def embed_documents_sync(self, texts: list[str]) -> list[list[float]]:
-        """Called from dedicated pipeline thread — sync is safe here."""
-        logger.info(f"Embedding {len(texts)} chunks via Gemini...")
-        embeddings = []
-        for i, text in enumerate(texts):
-            result = _client.models.embed_content(
-                model="gemini-embedding-001",
-                contents=text,
-                config=types.EmbedContentConfig(
-                    task_type="RETRIEVAL_DOCUMENT",
-                    output_dimensionality=768,
-                ),
+    # ──────────────────────────────────────────────────────────────
+    # Internal retry wrapper
+    # ──────────────────────────────────────────────────────────────
+    def _embed_with_retry(self, batch: List[str], task_type: str):
+        for attempt in range(self.MAX_RETRIES):
+            try:
+                return _client.models.embed_content(
+                    model="gemini-embedding-001",
+                    contents=batch,
+                    config=types.EmbedContentConfig(
+                        task_type=task_type,
+                        output_dimensionality=768,
+                    ),
+                )
+            except Exception as e:
+                wait = (2 ** attempt) + random.random()
+                logger.warning(
+                    f"Embedding failed (attempt {attempt + 1}), retrying in {wait:.2f}s..."
+                )
+                time.sleep(wait)
+
+        raise Exception("Embedding failed after max retries")
+
+    # ──────────────────────────────────────────────────────────────
+    # Sync document embedding (batched)
+    # ──────────────────────────────────────────────────────────────
+    def embed_documents_sync(self, texts: List[str]) -> List[List[float]]:
+        logger.info(f"Embedding {len(texts)} chunks via Gemini (batched)...")
+
+        all_embeddings = []
+
+        for i in range(0, len(texts), self.BATCH_SIZE):
+            batch = texts[i : i + self.BATCH_SIZE]
+
+            result = self._embed_with_retry(
+                batch=batch,
+                task_type="RETRIEVAL_DOCUMENT",
             )
-            embeddings.append(list(result.embeddings[0].values))
-            if (i + 1) % 10 == 0:
-                logger.info(f"  embedded {i + 1}/{len(texts)} chunks")
-        logger.info(f"Embedding complete: {len(embeddings)} chunks")
-        return embeddings
 
-    def embed_query_sync(self, text: str) -> list[float]:
-        result = _client.models.embed_content(
-            model="gemini-embedding-001",
-            contents=text,
-            config=types.EmbedContentConfig(
-                task_type="RETRIEVAL_QUERY",
-                output_dimensionality=768,
-            ),
+            for emb in result.embeddings:
+                all_embeddings.append(list(emb.values))
+
+            logger.info(
+                f"  embedded {len(all_embeddings)}/{len(texts)} chunks"
+            )
+
+            # Rate limiting (RPM safety)
+            time.sleep(self.RATE_DELAY)
+
+        logger.info(f"Embedding complete: {len(all_embeddings)} chunks")
+        return all_embeddings
+
+    # ──────────────────────────────────────────────────────────────
+    # Sync query embedding (single)
+    # ──────────────────────────────────────────────────────────────
+    def embed_query_sync(self, text: str) -> List[float]:
+        result = self._embed_with_retry(
+            batch=[text],
+            task_type="RETRIEVAL_QUERY",
         )
         return list(result.embeddings[0].values)
 
-    async def embed_documents(self, texts: list[str]) -> list[list[float]]:
+    # ──────────────────────────────────────────────────────────────
+    # Async wrappers
+    # ──────────────────────────────────────────────────────────────
+    async def embed_documents(self, texts: List[str]) -> List[List[float]]:
         return await asyncio.to_thread(self.embed_documents_sync, texts)
 
-    # ── Called during chat (main event loop) — wrap in executor ──────────────
-    async def embed_query(self, text: str) -> list[float]:
-        import asyncio
-        return await asyncio.get_event_loop().run_in_executor(
-            None, self.embed_query_sync, text
-        )
+    async def embed_query(self, text: str) -> List[float]:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self.embed_query_sync, text)
 
 
 embedding_service = EmbeddingService()
+
