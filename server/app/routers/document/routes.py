@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, UploadFile, File
+from typing import Optional
+from fastapi import APIRouter, Depends, UploadFile, File, Form
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,10 +16,16 @@ router = APIRouter(prefix="/api/documents", tags=["Documents"])
 @router.post("/upload", response_model=UploadResponse, status_code=201)
 async def upload_pdf(
     file: UploadFile = File(...),
+    chunk_limit: Optional[int] = Form(None),
+    chunk_mode: Optional[str] = Form(None),
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    return await document_service.upload(db, file, user_id)
+    return await document_service.upload(
+        db, file, user_id,
+        chunk_limit=chunk_limit,
+        chunk_mode=chunk_mode,
+    )
 
 
 @router.get("/", response_model=PDFListResponse)

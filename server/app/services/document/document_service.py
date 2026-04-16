@@ -32,6 +32,8 @@ class DocumentService:
         db: AsyncSession,
         file: UploadFile,
         user_id: str,
+        chunk_limit: int | None = None,
+        chunk_mode: str | None = None,
     ) -> dict:
         self._validate_file(file)
 
@@ -61,7 +63,9 @@ class DocumentService:
         # from FastAPI's event loop — GIL-holding ops in the daemon thread
         # cannot starve the main loop.
         thread = threading.Thread(
-            target=lambda: asyncio.run(self._process(pdf_id, file_path, user_id)),
+            target=lambda: asyncio.run(
+                self._process(pdf_id, file_path, user_id, chunk_limit, chunk_mode)
+            ),
             daemon=True,
             name=f"pdf-worker-{pdf_id[:8]}",
         )
@@ -69,7 +73,14 @@ class DocumentService:
         logger.info(f"PDF {pdf_id} uploaded, processing thread started")
         return {"id": pdf_id, "name": file.filename, "status": "queued"}
 
-    async def _process(self, pdf_id: str, file_path: str, user_id: str):
+    async def _process(
+        self,
+        pdf_id: str,
+        file_path: str,
+        user_id: str,
+        chunk_limit: int | None = None,
+        chunk_mode: str | None = None,
+    ):
         from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
         from app.core.config import get_settings
         
@@ -131,6 +142,21 @@ class DocumentService:
 
                 if not chunks:
                     raise ValueError("No text could be extracted from this PDF")
+
+                # ── Chunk limit enforcement ────────────────────────────────────
+                # If the caller requested only the first/last N chunks, slice
+                # before indexing. This prevents huge documents from blowing
+                # through the embedding rate limit budget.
+                if chunk_limit and len(chunks) > chunk_limit:
+                    original_count = len(chunks)
+                    if chunk_mode == "last":
+                        chunks = chunks[-chunk_limit:]
+                    else:  # default: "first"
+                        chunks = chunks[:chunk_limit]
+                    logger.info(
+                        f"PDF {pdf_id}: sliced from {original_count} → "
+                        f"{len(chunks)} chunks (mode={chunk_mode or 'first'})"
+                    )
 
                 total_pages = await asyncio.to_thread(get_page_count, file_path)
                 await indexing_service.index_chunks(db, pdf_id, chunks, user_id)

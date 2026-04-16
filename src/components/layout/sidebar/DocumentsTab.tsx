@@ -73,7 +73,10 @@ export function DocumentsTab() {
                   }`}
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <div className="relative shrink-0">
+                      <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                      <DocStatusDot status={doc.status} />
+                    </div>
                     <div className="min-w-0">
                       <p className="text-xs font-body text-foreground truncate">
                         {doc.name}
@@ -137,7 +140,10 @@ export function DocumentsTab() {
                 className="flex items-center justify-between px-2.5 py-2 rounded-lg hover:bg-sidebar-accent/50 transition-all group border border-transparent"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <div className="relative shrink-0">
+                    <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                    <DocStatusDot status={doc.status} />
+                  </div>
                   <div className="min-w-0">
                     <p className="text-xs font-body text-foreground truncate">
                       {doc.name}
@@ -176,5 +182,27 @@ export function DocumentsTab() {
         </div>
       )}
     </div>
+  );
+}
+
+// ── Status indicator dot ──────────────────────────────────────────────────────
+function DocStatusDot({ status }: { status: string }) {
+  if (status === 'ready') return null;
+
+  if (status === 'failed') {
+    return (
+      <span
+        className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 ring-1 ring-sidebar"
+        title="Processing failed"
+      />
+    );
+  }
+
+  // queued or processing → blinking yellow
+  return (
+    <span
+      className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-yellow-400 ring-1 ring-sidebar animate-pulse"
+      title={status === 'queued' ? 'Queued for processing' : 'Processing…'}
+    />
   );
 }

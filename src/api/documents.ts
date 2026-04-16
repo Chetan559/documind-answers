@@ -19,9 +19,23 @@ export interface DocumentStatus {
   total_pages: number;
 }
 
-export const uploadDocument = async (file: File): Promise<Document> => {
+export interface UploadOptions {
+  /** Maximum number of chunks to index (server will slice the rest). */
+  chunkLimit?: number;
+  /** Which end to keep when chunks exceed the limit. */
+  chunkMode?: 'first' | 'last';
+}
+
+export const uploadDocument = async (file: File, opts?: UploadOptions): Promise<Document> => {
   const formData = new FormData();
   formData.append('file', file);
+
+  if (opts?.chunkLimit !== undefined) {
+    formData.append('chunk_limit', String(opts.chunkLimit));
+  }
+  if (opts?.chunkMode) {
+    formData.append('chunk_mode', opts.chunkMode);
+  }
 
   const res = await authFetch(apiUrl('/api/documents/upload'), {
     method: 'POST',
